@@ -3,20 +3,34 @@
 	"main": ".open-next/worker.js",
 	"name": "church-admin-cmd",
 	"compatibility_date": "2025-11-27",
-	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"routes": [
+		{
+			"pattern": "admin.jesusgloryintl.com/*",
+			"zone_name": "jesusgloryintl.com"
+		}
+	],
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
 	},
 	"r2_buckets": [
-		// Use R2 incremental cache
-		// See https://opennext.js.org/cloudflare/caching
 		{
 			"binding": "NEXT_INC_CACHE_R2_BUCKET",
-			// Create the bucket before deploying
-			// You can change the bucket name if you want
-			// See https://developers.cloudflare.com/workers/wrangler/commands/#r2-bucket-create
 			"bucket_name": "cache"
 		}
-	]
+	],
+	"workers_dev": true,
+	"preview_urls": true,
+	"vars": {
+		"ADMIN_URL": "https://admin.jesusgloryintl.com",
+		"BASE_URL": "https://admin.jesusgloryintl.com",
+		"CLOUDFARE_IMAGE_URL": "https://img.jesusgloryintl.com",
+		"NEXTAUTH_URL": "https://admin.jesusgloryintl.com",
+		"R2_BUCKET": "church-media",
+		"YOUTUBE_API_BASE_URL": "https://www.googleapis.com/youtube/v3"
+	}
 }
