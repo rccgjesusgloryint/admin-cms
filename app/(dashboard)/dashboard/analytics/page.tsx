@@ -1,6 +1,8 @@
-import { AnalyticsCharts } from "@/components/analytics/AnalyticsCharts";
+import { AnalyticsChartsWrapper } from "@/components/analytics/AnalyticsChartsWrapper";
 import { getAnalyticsData } from "@/lib/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+
 
 export default async function AnalyticsPage() {
   const { userGrowthData, contentDistribution } = await getAnalyticsData();
@@ -35,7 +37,7 @@ export default async function AnalyticsPage() {
         ))}
       </div>
 
-      <AnalyticsCharts 
+      <AnalyticsChartsWrapper 
         userGrowthData={userGrowthData}
         contentDistribution={contentDistribution}
       />

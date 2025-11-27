@@ -1,6 +1,5 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = 'edge';
@@ -13,8 +12,15 @@ const S3 = new S3Client({
     secretAccessKey: process.env.CLOUDFARE_SECRET_KEY!,
   },
 });
+
 const bucket = process.env.R2_BUCKET!;
+
 type Req = { files: { name: string; type?: string }[]; prefix?: string };
+
+const generateKey = () => crypto.randomUUID(); // ✅ Web Crypto, available on Edge
+
+const randomUUID = () => crypto.randomUUID(); // ✅ Web Crypto, available on Edge
+
 export async function POST(req: NextRequest) {
   try {
     const { files, prefix } = (await req.json()) as Req;
