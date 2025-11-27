@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import React from "react";
-import CreateNewsletterForm from "../forms/CreateNewsletterForm";
+import CreateNewsletterForm from "./CreateNewsletterForm";
 
 type Props = {};
 

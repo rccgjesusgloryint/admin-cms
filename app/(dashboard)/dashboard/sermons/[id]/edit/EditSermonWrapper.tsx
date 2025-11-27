@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sermon } from "@/lib/types";
-import UpdateSermonForm from "@/components/sermons/UpdateSermonForm";
+// import UpdateSermonForm from "@/components/sermons/UpdateSermonForm";
 
 interface Props {
   sermon: Sermon;
@@ -20,11 +20,11 @@ export default function EditSermonWrapper({ sermon }: Props) {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <UpdateSermonForm
+      {/* <UpdateSermonForm
         sermon={sermon}
         setRefresh={setRefresh}
         setClose={handleClose}
-      />
+      /> */}
     </div>
   );
 }

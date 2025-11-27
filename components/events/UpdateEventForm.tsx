@@ -24,7 +24,7 @@ import toast from "react-hot-toast";
 import { updateEvent } from "@/lib/queries";
 import { EventsType } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
-import FileUpload from "../../media/multiple-file-uploads";
+
 import { Input } from "@/components/ui/input";
 
 interface Props {
