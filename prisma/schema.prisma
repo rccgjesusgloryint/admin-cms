@@ -1,0 +1,209 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN  
+  MEMBER
+  MINISTER
+  OWNER
+}
+
+enum Permissions {
+  readonly_access
+  admin_access
+  member_access
+  minister_access
+}
+
+model User {
+  id            String          @id @default(uuid())
+  name          String?
+  email         String          @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  member        Role @default(MEMBER)
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+ 
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@id([provider, providerAccountId])
+}
+ 
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Media {
+  id         String   @id @default(uuid())
+  type       String?
+  name       String
+  link       String   @unique
+  externalId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Image {
+  id         String   @id @default(uuid())
+  type       String
+  filename    String
+  event      String
+  bucket     String
+  url        String?
+  description String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Events {
+  id          Int      @id @default(autoincrement())
+  event       String
+  date        String[]  @default(["", ""])
+  location    String
+  description Json
+  monthly     Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EventMedia {
+  id          Int       @id @default(autoincrement())
+  event       String    @unique
+  date        DateTime
+  location    String?   // optional
+  description String?   // optional
+  images      String[]  // array of image URLs
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+
+model NewsletterEmail {
+  email String @id // Email as the primary key (unique identifier)
+}
+
+
+model Sermon {
+  id              Int       @id @default(autoincrement())
+  videoUrl        String
+  sermonTitle     String
+  tags            String[]
+  likes           Int?
+  sermonResources String[]  @default([])
+  thumbnail       String?   @default("")
+  summary         String    @default("")
+  aiBreakdown     String    @default("") // breakdown of the summary via the transcript
+  videoTranscript String    @default("")
+  speaker         String    @default("")
+  hasNotes        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  likes     Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Blog {
+  id                  String  @default(uuid()) @id
+  blogTitle           String
+  blogDescription     String
+  blogImage           String?  
+  blogContent         String
+  blogAuthor          String
+  series              Blog_Series[]
+  category            String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+}
+
+model Blog_Series{
+  id                  Int      @id @default(autoincrement())
+  blog                Blog?    @relation(fields: [blogId], references: [id])
+  blogId              String?  @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Notification {
+  id                          String  @default(uuid()) @id
+  notification                String
+  shouldNotify                Boolean
+  notificationDuration        String //how long should the notfication be visible for when triggered
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt   
+}
+
+model Feedback {
+  id           Int      @id @default(autoincrement())
+  name         String?  // optional
+  email        String?  // optional
+  category     String?  // 'bug', 'suggestion', 'improvement', etc.
+  message      String
+  feedbackFrom String?  // NEW: where they’re reporting from
+  createdAt    DateTime @default(now())
+}
+
+model SiteSettings {
+  id                Int      @id @default(autoincrement())
+  churchName        String   @default("Church Admin")
+  description       String   @default("")
+  contactEmail      String?
+  contactPhone      String?
+  address           String?
+  socialLinks       Json?    // { facebook, instagram, youtube, twitter }
+  
+  // Appearance
+  primaryColor      String   @default("#0088FE")
+  logoUrl           String?
+  
+  // Features
+  allowRegistration Boolean  @default(true)
+  
+  updatedAt         DateTime @updatedAt
+  updatedBy         String?  // User ID who last updated
+}
