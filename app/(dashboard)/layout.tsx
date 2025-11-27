@@ -1,6 +1,9 @@
 import { auth } from "@/auth";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+
+export const runtime = 'edge';
+
 export default async function DashboardLayout({
   children,
 }: {

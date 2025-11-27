@@ -2,6 +2,9 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+
+export const runtime = 'edge';
+
 const S3 = new S3Client({
   region: "auto",
   endpoint: `https://${process.env.CLOUDFARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
