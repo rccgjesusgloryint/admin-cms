@@ -44,6 +44,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.13.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^18.3.27",
@@ -51,6 +52,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.4",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.51.0"
   }
 }
