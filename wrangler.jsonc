@@ -27,6 +27,7 @@
 	"preview_urls": true,
 	"vars": {
 		"ADMIN_URL": "https://admin.jesusgloryintl.com",
+		"AUTH_TRUST_HOST": "true",
 		"BASE_URL": "https://admin.jesusgloryintl.com",
 		"CLOUDFARE_IMAGE_URL": "https://img.jesusgloryintl.com",
 		"NEXTAUTH_URL": "https://admin.jesusgloryintl.com",
