@@ -9,7 +9,7 @@
 	],
 	"routes": [
 		{
-			"pattern": "admin.jesusgloryintl.com/*",
+			"pattern": "admin.jesusgloryintl.com",
 			"zone_name": "jesusgloryintl.com"
 		}
 	],
@@ -32,6 +32,7 @@
 		"CLOUDFARE_IMAGE_URL": "https://img.jesusgloryintl.com",
 		"NEXTAUTH_URL": "https://admin.jesusgloryintl.com",
 		"R2_BUCKET": "church-media",
-		"YOUTUBE_API_BASE_URL": "https://www.googleapis.com/youtube/v3"
+		"YOUTUBE_API_BASE_URL": "https://www.googleapis.com/youtube/v3",
+		"DATABASE_URL": "prisma://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqd3RfaWQiOjEsInNlY3VyZV9rZXkiOiJza19rTU0yb1NtZ3NCeXJZazVwWldNV2EiLCJhcGlfa2V5IjoiMDFLQjNRTjgzU1NSVkg3OVA3WEpCOFdERkQiLCJ0ZW5hbnRfaWQiOiI3ZjBlZTJkYjc0MTYyNDNiOGY3OGI1ZDdjZmNiZDE3OWNlNTc0MDk1NDM3ODUwYmQxN2E5ODRmODU1MmQ3NTRmIiwiaW50ZXJuYWxfc2VjcmV0IjoiMzBkMjc4ZDctYzJhZS00M2UxLTgyNGUtMDVkNjIwNjZlNGU1In0.-4ribUIpxqQ1XyfV-bBVRabdz-gN49fpOUxPc8TDr4I"
 	}
 }
