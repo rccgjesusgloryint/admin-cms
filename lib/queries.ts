@@ -399,6 +399,19 @@ export const getAllNewsletterEmails = async (): Promise<string[]> => {
   return response;
 };
 
+export const deleteNewsletterEmail = async (email: string) => {
+  try {
+    await prisma.newsletterEmail.delete({
+      where: { email },
+    });
+    return { message: "Subscriber removed successfully", status: 200 };
+  } catch (error) {
+    console.error("Error deleting newsletter email:", error);
+    return { message: "Failed to remove subscriber", status: 400 };
+  }
+};
+
+
 export const sendContactEmail = async ({
   email,
   name,

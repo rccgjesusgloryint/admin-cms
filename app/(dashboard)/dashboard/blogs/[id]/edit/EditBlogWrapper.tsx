@@ -1,9 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BlogType } from "@/lib/types";
-import UpdateBlogForm from "@/components/blogs/UpdateBlogForm";
+import dynamic from "next/dynamic";
+
+// Dynamically import the form with no SSR to prevent findDOMNode errors
+const UpdateBlogForm = dynamic(
+  () => import("@/components/blogs/UpdateBlogForm"),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-center min-h-[500px]">
+          <p className="text-muted-foreground">Loading editor...</p>
+        </div>
+      </div>
+    )
+  }
+);
 
 interface Props {
   blog: BlogType;
@@ -20,11 +35,19 @@ export default function EditBlogWrapper({ blog }: Props) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <UpdateBlogForm
-        blog={blog}
-        setRefresh={setRefresh}
-        setClose={handleClose}
-      />
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-[500px]">
+            <p className="text-muted-foreground">Loading editor...</p>
+          </div>
+        }
+      >
+        <UpdateBlogForm
+          blog={blog}
+          setRefresh={setRefresh}
+          setClose={handleClose}
+        />
+      </Suspense>
     </div>
   );
 }

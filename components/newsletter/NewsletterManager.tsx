@@ -11,7 +11,7 @@ import toast from "react-hot-toast";
 import { getAllNewsletterEmails } from "@/lib/queries";
 
 export function NewsletterManager() {
-  const [subscribers, setSubscribers] = useState<any[]>([]);
+  const [subscribers, setSubscribers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   
@@ -70,13 +70,38 @@ export function NewsletterManager() {
   }
 
   async function handleExportSubscribers() {
-    const csv = ["Email"].concat(subscribers.map(s => s.email)).join("\n");
+    const csv = ["Email"].concat(subscribers).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `newsletter-subscribers-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
+  }
+
+  async function handleDeleteSubscriber(email: string) {
+    if (!confirm(`Are you sure you want to remove ${email} from the newsletter?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/newsletter/unsubscribe", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (res.ok) {
+        toast.success("Subscriber removed successfully");
+        // Update local state
+        setSubscribers(subscribers.filter(s => s !== email));
+      } else {
+        toast.error("Failed to remove subscriber");
+      }
+    } catch (error) {
+      console.error("Error removing subscriber:", error);
+      toast.error("Error removing subscriber");
+    }
   }
 
   return (
@@ -140,14 +165,23 @@ export function NewsletterManager() {
           <CardContent>
             {loading ? (
               <p>Loading subscribers...</p>
+            ) : subscribers.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No subscribers yet</p>
             ) : (
               <div className="space-y-2">
-                {subscribers.map((subscriber, index) => (
+                {subscribers.map((email, index) => (
                   <div
-                    key={index}
-                    className="p-3 border rounded-lg text-sm"
+                    key={email || index}
+                    className="flex items-center justify-between p-3 border rounded-lg text-sm"
                   >
-                    {subscriber.email}
+                    <span>{email}</span>
+                    <Button
+                      onClick={() => handleDeleteSubscriber(email)}
+                      variant="destructive"
+                      size="sm"
+                    >
+                      Delete
+                    </Button>
                   </div>
                 ))}
               </div>
