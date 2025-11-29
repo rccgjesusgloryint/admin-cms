@@ -1,298 +1,298 @@
-// import { Button } from "@/components/ui/button";
-// import {
-//   Card,
-//   CardContent,
-//   CardDescription,
-//   CardHeader,
-//   CardTitle,
-// } from "@/components/ui/card";
-// import {
-//   Form,
-//   FormControl,
-//   FormField,
-//   FormItem,
-//   FormLabel,
-//   FormMessage,
-// } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
-// import { zodResolver } from "@hookform/resolvers/zod";
-// import React, { Dispatch, SetStateAction } from "react";
-// import { useForm, useFieldArray } from "react-hook-form";
-// import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import React, { Dispatch, SetStateAction } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { z } from "zod";
 
-// import toast from "react-hot-toast";
-// import { updateSermon } from "@/lib/queries";
-// import { Sermon } from "@/lib/types";
-// import { Input } from "@/components/ui/input";
-// import { Textarea } from "@/components/ui/textarea";
-// import { Plus, X } from "lucide-react";
+import toast from "react-hot-toast";
+import { updateSermon } from "@/lib/queries";
+import { Sermon } from "@/lib/types";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, X } from "lucide-react";
 
-// interface Props {
-//   sermon: Sermon;
-//   setRefresh: Dispatch<SetStateAction<boolean>>;
-//   setClose: () => void;
-// }
+interface Props {
+  sermon: Sermon;
+  setRefresh: Dispatch<SetStateAction<boolean>>;
+  setClose: () => void;
+}
 
-// const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
-//   const [tags, setTags] = React.useState<string[]>([]);
+const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
+  const [tags, setTags] = React.useState<string[]>([]);
 
-//   const formSchema = z.object({
-//     videoUrl: z.string().min(2).max(50),
-//     sermonTitle: z.string().min(2).max(50),
-//     thumbnail: z.string().min(2),
-//     aiBreakdown: z.string().default(""),
-//     videoTranscript: z.string().default(""),
-//     summary: z.string().default(""),
-//     sermonResources: z.array(z.object({ value: z.string() })).default([]),
-//     speaker: z.string().default(""),
-//   });
+  const formSchema = z.object({
+    videoUrl: z.string().min(2).max(50),
+    sermonTitle: z.string().min(2).max(50),
+    thumbnail: z.string().min(2),
+    aiBreakdown: z.string().default(""),
+    videoTranscript: z.string().default(""),
+    summary: z.string().default(""),
+    sermonResources: z.array(z.object({ value: z.string() })).default([]),
+    speaker: z.string().default(""),
+  });
 
-//   type FormData = z.infer<typeof formSchema>;
+  type FormData = z.infer<typeof formSchema>;
 
-//   const form = useForm<FormData>({
-//     resolver: zodResolver(formSchema),
-//     mode: "onSubmit",
-//     defaultValues: {
-//       videoUrl: sermon.videoUrl || "",
-//       sermonTitle: sermon.sermonTitle || "",
-//       thumbnail: sermon.thumbnail || "",
-//       sermonResources: sermon.sermonResources?.map((r) => ({ value: r })) || [
-//         { value: "" },
-//       ],
-//       aiBreakdown: sermon.aiBreakdown || "",
-//       videoTranscript: sermon.videoTranscript || "",
-//       summary: sermon.summary || "",
-//       speaker: sermon.speaker || "",
-//     },
-//   });
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    mode: "onSubmit",
+    defaultValues: {
+      videoUrl: sermon.videoUrl || "",
+      sermonTitle: sermon.sermonTitle || "",
+      thumbnail: sermon.thumbnail || "",
+      sermonResources: sermon.sermonResources?.map((r) => ({ value: r })) || [
+        { value: "" },
+      ],
+      aiBreakdown: sermon.aiBreakdown || "",
+      videoTranscript: sermon.videoTranscript || "",
+      summary: sermon.summary || "",
+      speaker: sermon.speaker || "",
+    },
+  });
 
-//   const { fields, append, remove } = useFieldArray({
-//     control: form.control,
-//     name: "sermonResources",
-//   });
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "sermonResources",
+  });
 
-//   async function onSubmit(values: z.infer<typeof formSchema>) {
-//     if (!sermon.id) return alert("No sermon provided!");
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!sermon.id) return alert("No sermon provided!");
 
-//     const filteredResources =
-//       values.sermonResources
-//         ?.map((r) => r.value)
-//         .filter((resource) => resource.trim() !== "") || [];
+    const filteredResources =
+      values.sermonResources
+        ?.map((r) => r.value)
+        .filter((resource) => resource.trim() !== "") || [];
 
-//     let tempSermon = {
-//       ...values,
-//       sermonResources: filteredResources,
-//       hasNotes: filteredResources.length !== 0,
-//       tags,
-//     };
+    let tempSermon = {
+      ...values,
+      sermonResources: filteredResources,
+      hasNotes: filteredResources.length !== 0,
+      tags,
+    };
 
-//     try {
-//       const response = await toast.promise(
-//         updateSermon(sermon.id, { ...tempSermon }),
-//         {
-//           loading: "Loading",
-//           success: (data) => `Successfully updated ${data.message}`,
-//           error: (err) => `This just happened: ${err.toString()}`,
-//         },
-//         {
-//           style: {
-//             border: "1px solid hsl(var(--border))",
-//             padding: "16px",
-//             color: "hsl(var(--foreground))",
-//             background: "hsl(var(--background))",
-//           },
-//           iconTheme: {
-//             primary: "hsl(var(--primary))",
-//             secondary: "hsl(var(--primary-foreground))",
-//           },
-//           success: {
-//             duration: 2000,
-//             icon: "🟢",
-//           },
-//         }
-//       );
-//       if (response.status === 200) {
-//         setRefresh((prev) => !prev);
-//         setClose();
-//       }
-//     } catch (error) {
-//       console.log("ERROR Updating Sermon:", error);
-//     }
-//   }
+    try {
+      const response = await toast.promise(
+        updateSermon(sermon.id, { ...tempSermon }),
+        {
+          loading: "Loading",
+          success: (data) => `Successfully updated ${data.message}`,
+          error: (err) => `This just happened: ${err.toString()}`,
+        },
+        {
+          style: {
+            border: "1px solid hsl(var(--border))",
+            padding: "16px",
+            color: "hsl(var(--foreground))",
+            background: "hsl(var(--background))",
+          },
+          iconTheme: {
+            primary: "hsl(var(--primary))",
+            secondary: "hsl(var(--primary-foreground))",
+          },
+          success: {
+            duration: 2000,
+            icon: "🟢",
+          },
+        }
+      );
+      if (response.status === 200) {
+        setRefresh((prev) => !prev);
+        setClose();
+      }
+    } catch (error) {
+      console.log("ERROR Updating Sermon:", error);
+    }
+  }
 
-//   return (
-//     <Card className="w-full h-full mt-5">
-//       <CardHeader>
-//         <CardTitle>
-//           <CardDescription>Update Sermon</CardDescription>
-//         </CardTitle>
-//       </CardHeader>
-//       <CardContent className="flex flex-col items-center justify-center gap-5">
-//         <Form {...form}>
-//           <form
-//             onSubmit={form.handleSubmit(onSubmit)}
-//             className="w-full space-y-4"
-//           >
-//             <FormField
-//               control={form.control}
-//               name="videoUrl"
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>Sermon Video Url</FormLabel>
-//                   <FormControl>
-//                     <Input placeholder="https://localhost:3000" {...field} />
-//                   </FormControl>
-//                   <FormMessage />
-//                 </FormItem>
-//               )}
-//             />
+  return (
+    <Card className="w-full h-full mt-5">
+      <CardHeader>
+        <CardTitle>
+          <CardDescription>Update Sermon</CardDescription>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center gap-5">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="w-full space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="videoUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sermon Video Url</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://localhost:3000" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-//             <FormField
-//               control={form.control}
-//               name="sermonTitle"
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>Sermon Title</FormLabel>
-//                   <FormControl>
-//                     <Input placeholder="Are you a child of God?" {...field} />
-//                   </FormControl>
-//                   <FormMessage />
-//                 </FormItem>
-//               )}
-//             />
+            <FormField
+              control={form.control}
+              name="sermonTitle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sermon Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Are you a child of God?" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-//             <FormField
-//               control={form.control}
-//               name="aiBreakdown"
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>AI Breakdown</FormLabel>
-//                   <FormControl>
-//                     <Textarea
-//                       placeholder="Paste the ai breakdown here..."
-//                       {...field}
-//                     />
-//                   </FormControl>
-//                   <FormMessage />
-//                 </FormItem>
-//               )}
-//             />
+            <FormField
+              control={form.control}
+              name="aiBreakdown"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>AI Breakdown</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Paste the ai breakdown here..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-//             <FormField
-//               control={form.control}
-//               name="videoTranscript"
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>Video Transcript</FormLabel>
-//                   <FormControl>
-//                     <Textarea
-//                       placeholder="Paste the video transcript here..."
-//                       {...field}
-//                     />
-//                   </FormControl>
-//                   <FormMessage />
-//                 </FormItem>
-//               )}
-//             />
+            <FormField
+              control={form.control}
+              name="videoTranscript"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Video Transcript</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Paste the video transcript here..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-//             <FormField
-//               control={form.control}
-//               name="summary"
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>Summary</FormLabel>
-//                   <FormControl>
-//                     <Textarea
-//                       placeholder="Paste the ai summary here..."
-//                       {...field}
-//                     />
-//                   </FormControl>
-//                   <FormMessage />
-//                 </FormItem>
-//               )}
-//             />
+            <FormField
+              control={form.control}
+              name="summary"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Summary</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Paste the ai summary here..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-//             <FormField
-//               control={form.control}
-//               name="thumbnail"
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>Thumbnail</FormLabel>
-//                   <FormControl>
-//                     <Input placeholder="Thumbnail url" {...field} />
-//                   </FormControl>
-//                   <FormMessage />
-//                 </FormItem>
-//               )}
-//             />
+            <FormField
+              control={form.control}
+              name="thumbnail"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Thumbnail</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Thumbnail url" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-//             <FormField
-//               control={form.control}
-//               name="speaker"
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>Speaker</FormLabel>
-//                   <FormControl>
-//                     <Input placeholder="Speaker" {...field} />
-//                   </FormControl>
-//                   <FormMessage />
-//                 </FormItem>
-//               )}
-//             />
+            <FormField
+              control={form.control}
+              name="speaker"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Speaker</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Speaker" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-//             <div className="space-y-3">
-//               <div className="flex items-center justify-between">
-//                 <FormLabel>Sermon Resources</FormLabel>
-//                 <Button
-//                   type="button"
-//                   variant="outline"
-//                   size="sm"
-//                   onClick={() => append({ value: "" })}
-//                   className="h-8 gap-1"
-//                 >
-//                   <Plus className="h-4 w-4" />
-//                   Add Resource
-//                 </Button>
-//               </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <FormLabel>Sermon Resources</FormLabel>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append({ value: "" })}
+                  className="h-8 gap-1"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Resource
+                </Button>
+              </div>
 
-//               {fields.map((field, index) => (
-//                 <FormField
-//                   key={field.id}
-//                   control={form.control}
-//                   name={`sermonResources.${index}.value`}
-//                   render={({ field }) => (
-//                     <FormItem>
-//                       <FormControl>
-//                         <div className="flex gap-2">
-//                           <Textarea placeholder="Paste here..." {...field} />
-//                           {fields.length > 1 && (
-//                             <Button
-//                               type="button"
-//                               variant="outline"
-//                               size="icon"
-//                               onClick={() => remove(index)}
-//                               className="shrink-0"
-//                             >
-//                               <X className="h-4 w-4" />
-//                             </Button>
-//                           )}
-//                         </div>
-//                       </FormControl>
-//                       <FormMessage />
-//                     </FormItem>
-//                   )}
-//                 />
-//               ))}
-//             </div>
+              {fields.map((field, index) => (
+                <FormField
+                  key={field.id}
+                  control={form.control}
+                  name={`sermonResources.${index}.value`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className="flex gap-2">
+                          <Textarea placeholder="Paste here..." {...field} />
+                          {fields.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => remove(index)}
+                              className="shrink-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
 
-//             <Button type="submit" className="mt-4">
-//               Update Sermon
-//             </Button>
-//           </form>
-//         </Form>
-//       </CardContent>
-//     </Card>
-//   );
-// };
+            <Button type="submit" className="mt-4">
+              Update Sermon
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+};
 
-// export default UpdateSermonForm;
+export default UpdateSermonForm;

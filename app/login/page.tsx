@@ -1,5 +1,11 @@
 import { signIn } from "@/auth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 export default function LoginPage() {
   return (
@@ -18,7 +24,7 @@ export default function LoginPage() {
               await signIn("google", { redirectTo: "/dashboard" });
             }}
           >
-            <Button type="submit" className="w-full" size="lg">
+            <Button type="submit" className="w-full cursor-pointer" size="lg">
               Sign in with Google
             </Button>
           </form>
