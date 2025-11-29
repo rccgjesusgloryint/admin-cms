@@ -43,20 +43,26 @@ import { CalendarIcon } from "lucide-react";
 
 function formatDate(date: Date | undefined) {
   if (!date) {
-    return ""
+    return "";
   }
 
   return date.toLocaleDateString("en-US", {
     day: "2-digit",
     month: "long",
     year: "numeric",
-  })
+  });
 }
 
 // takes a tuple of dates as string and returns an object with the dates in the correct format
-function formatFieldDateRange(dateRange: [string, string]): {from: Date, to: Date} {
+function formatFieldDateRange(dateRange: [string, string]): {
+  from: Date;
+  to: Date;
+} {
   const [from, to] = dateRange;
-  const correctFormat: { from: Date; to: Date } = {from: new Date(), to: new Date()};
+  const correctFormat: { from: Date; to: Date } = {
+    from: new Date(),
+    to: new Date(),
+  };
 
   if (from && to) {
     correctFormat.from = new Date(from);
@@ -71,11 +77,11 @@ function formatFieldDateRange(dateRange: [string, string]): {from: Date, to: Dat
 const EventsForm = () => {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-    const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
     from: new Date(2025, 5, 12),
     to: new Date(2025, 6, 15),
-  })
-  const [open, setOpen] = React.useState(false)
+  });
+  const [open, setOpen] = React.useState(false);
 
   // Define the schema
   const formSchema = z
@@ -90,9 +96,7 @@ const EventsForm = () => {
       monthly: z.boolean(),
     })
     .refine(
-      (data) =>
-        data.monthly ||
-        (dateRange && dateRange.from && dateRange.to),
+      (data) => data.monthly || (dateRange && dateRange.from && dateRange.to),
       {
         path: ["date"],
         message:
@@ -151,7 +155,6 @@ const EventsForm = () => {
     // // 3) Commit metadata (including the *one* URL) to your DB
     // const imageUrl = publicUrl;
 
-
     try {
       const response = await toast.promise(
         createEvent({
@@ -160,7 +163,7 @@ const EventsForm = () => {
             eventPosterImage: "",
             eventDescription: values.description.eventDescription!,
           },
-          date: [formatDate(dateRange.from), formatDate(dateRange.to)]
+          date: [formatDate(dateRange.from), formatDate(dateRange.to)],
         }),
         {
           loading: "Loading",
@@ -275,7 +278,7 @@ const EventsForm = () => {
             {/* Conditionally render date fields if monthly is "false" */}
             {!monthlyValue && (
               <>
-              {/* <Input
+                {/* <Input
                               id="date"
                               value={`${dateRange?.from} - ${dateRange?.to}`}
                               placeholder="June 01, 2025"
@@ -287,36 +290,36 @@ const EventsForm = () => {
                                 }
                               }}
                               /> */}
-              
-                        <Popover open={open} onOpenChange={setOpen}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-fit justify-start text-left font-normal",
-                                !dateRange && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dateRange ? (
-                                <>
-                                  {formatDate(dateRange.from)} -{" "}
-                                  {dateRange.to && formatDate(dateRange.to)}
-                                </>
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="range"
-                              onSelect={setDateRange}
-                              selected={dateRange}
-                              className="rounded-lg border shadow-sm w-[300px]"
-                            />
-                          </PopoverContent>
-                        </Popover>
+
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-fit justify-start text-left font-normal",
+                        !dateRange && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange ? (
+                        <>
+                          {formatDate(dateRange.from)} -{" "}
+                          {dateRange.to && formatDate(dateRange.to)}
+                        </>
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="range"
+                      onSelect={setDateRange}
+                      selected={dateRange}
+                      className="rounded-lg border shadow-sm w-[300px]"
+                    />
+                  </PopoverContent>
+                </Popover>
                 {/* <Label>{dateRange?.from && formatDate(dateRange.from)} {dateRange?.to && " - " + formatDate(dateRange.to)}</Label> */}
               </>
             )}
@@ -338,9 +341,12 @@ const EventsForm = () => {
               name="description.eventPosterImage"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Event Poster Image</FormLabel>
                   <FormControl>
-                    <FileUpload value={coverImage} onChange={setCoverImage} />
+                    <FileUpload
+                      value={coverImage}
+                      onChange={setCoverImage}
+                      label="Event Poster Image"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

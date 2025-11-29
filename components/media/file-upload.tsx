@@ -7,13 +7,15 @@ import { SingleImageInput } from "./single-image-upload";
 type Props = {
   onChange: (file: File | null) => void;
   value: File | null;
+  label?: string;
 };
 
-const FileUpload = ({ onChange, value }: Props) => {
+const FileUpload = ({ onChange, value, label }: Props) => {
   return (
     <div className="space-y-2">
       <Label htmlFor="post-image">
-        Cover Image <span className="text-destructive">*</span>
+        {label ? label : "Cover Image"}{" "}
+        <span className="text-destructive">*</span>
       </Label>
       <SingleImageInput value={value} onChange={onChange} />
     </div>
