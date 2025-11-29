@@ -33,10 +33,50 @@ import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
 import toast from "react-hot-toast";
 import FileUpload from "../media/file-upload";
+import { Calendar } from "../ui/calendar";
+import { DateRange } from "react-day-picker";
+import { Label } from "../ui/label";
+import { setDate } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
+
+function formatDate(date: Date | undefined) {
+  if (!date) {
+    return ""
+  }
+
+  return date.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  })
+}
+
+// takes a tuple of dates as string and returns an object with the dates in the correct format
+function formatFieldDateRange(dateRange: [string, string]): {from: Date, to: Date} {
+  const [from, to] = dateRange;
+  const correctFormat: { from: Date; to: Date } = {from: new Date(), to: new Date()};
+
+  if (from && to) {
+    correctFormat.from = new Date(from);
+    correctFormat.to = new Date(to);
+  }
+  if (from) {
+    correctFormat.from = new Date(from);
+  }
+  return correctFormat;
+}
 
 const EventsForm = () => {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+    const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
+    from: new Date(2025, 5, 12),
+    to: new Date(2025, 6, 15),
+  })
+  const [open, setOpen] = React.useState(false)
+
   // Define the schema
   const formSchema = z
     .object({
@@ -52,8 +92,7 @@ const EventsForm = () => {
     .refine(
       (data) =>
         data.monthly ||
-        (data.date && data.date[0].trim() && data.date[1].trim()),
-
+        (dateRange && dateRange.from && dateRange.to),
       {
         path: ["date"],
         message:
@@ -84,53 +123,44 @@ const EventsForm = () => {
 
   const validSubmissions = async (values: any) => {
     if (!coverImage) return alert("Please select a cover image");
+    if (!dateRange) return alert("Please select a date range");
     setIsUploading(true);
     // 1) Ask server for *one* presigned URL
-    const presignRes = await fetch("/api/upload/file-presign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: coverImage.name,
-        type: coverImage.type,
-        prefix: `posts/${coverImage.name}`,
-      }),
-    });
-    const { key, uploadUrl, publicUrl, contentType } = await presignRes.json();
-
-    if (!uploadUrl) throw new Error("Failed to get presigned URL.");
-
-    // 2) Upload the file directly to R2
-    const put = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": contentType },
-      body: coverImage,
-    });
-
-    if (!put.ok) throw new Error(`Upload failed: ${coverImage.name}`);
-
-    // 3) Commit metadata (including the *one* URL) to your DB
-    const imageUrl = publicUrl;
-
-    // --- IMPORTANT ---
-    // Here you would call your *new* server action to save
-    // the post data and the single image URL.
-    //
-    // await savePostToDatabase({
-    //   title: title,
-    //   description: description,
-    //   imageUrl: imageUrl,
+    // const presignRes = await fetch("/api/upload/file-presign", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({
+    //     name: coverImage.name,
+    //     type: coverImage.type,
+    //     prefix: `posts/${coverImage.name}`,
+    //   }),
     // });
-    //
-    // For this example, we'll just log it:
+    // const { key, uploadUrl, publicUrl, contentType } = await presignRes.json();
+
+    // if (!uploadUrl) throw new Error("Failed to get presigned URL.");
+
+    // // 2) Upload the file directly to R2
+    // const put = await fetch(uploadUrl, {
+    //   method: "PUT",
+    //   headers: { "Content-Type": contentType },
+    //   body: coverImage,
+    // });
+
+    // if (!put.ok) throw new Error(`Upload failed: ${coverImage.name}`);
+
+    // // 3) Commit metadata (including the *one* URL) to your DB
+    // const imageUrl = publicUrl;
+
 
     try {
       const response = await toast.promise(
         createEvent({
           ...values,
           description: {
-            eventPosterImage: imageUrl,
+            eventPosterImage: "",
             eventDescription: values.description.eventDescription!,
           },
+          date: [formatDate(dateRange.from), formatDate(dateRange.to)]
         }),
         {
           loading: "Loading",
@@ -167,8 +197,9 @@ const EventsForm = () => {
   };
 
   const invalidSubmissions = async (errors: typeof form.formState.errors) => {
-    if (errors.date) {
-      return toast.error("Please fill in the dates for the event");
+    const dateValue = form.watch("date");
+    if (errors.date && !dateValue) {
+      return toast.error("Please select a date range for the event");
     }
     if (errors.event) {
       return toast.error("event: " + errors.event.message!);
@@ -201,7 +232,7 @@ const EventsForm = () => {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(validSubmissions, invalidSubmissions)}
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-3 w-full"
           >
             <FormField
               control={form.control}
@@ -244,38 +275,49 @@ const EventsForm = () => {
             {/* Conditionally render date fields if monthly is "false" */}
             {!monthlyValue && (
               <>
-                <FormField
-                  control={form.control}
-                  name="date.0"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>From Date</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="From (eg. April 28, 2022)"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="date.1"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>To Date</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="To (eg. April 30, 2022)"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {/* <Input
+                              id="date"
+                              value={`${dateRange?.from} - ${dateRange?.to}`}
+                              placeholder="June 01, 2025"
+                              className="bg-background pr-10"
+                              onKeyDown={(e) => {
+                                if (e.key === "ArrowDown") {
+                                  e.preventDefault()
+                                  setOpen(true)
+                                }
+                              }}
+                              /> */}
+              
+                        <Popover open={open} onOpenChange={setOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-fit justify-start text-left font-normal",
+                                !dateRange && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {dateRange ? (
+                                <>
+                                  {formatDate(dateRange.from)} -{" "}
+                                  {dateRange.to && formatDate(dateRange.to)}
+                                </>
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="range"
+                              onSelect={setDateRange}
+                              selected={dateRange}
+                              className="rounded-lg border shadow-sm w-[300px]"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                {/* <Label>{dateRange?.from && formatDate(dateRange.from)} {dateRange?.to && " - " + formatDate(dateRange.to)}</Label> */}
               </>
             )}
             <FormField
