@@ -25,11 +25,13 @@ import { z } from "zod";
 import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
 
+import "react-quill-new/dist/quill.snow.css";
+
 interface NewsletterFormProps {
   field: ControllerRenderProps<any, string>;
 }
 
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 // Wrap ReactQuill in forwardRef to prevent ref warnings
 const QuillEditor = forwardRef(({ field }: NewsletterFormProps, ref) => (
   <ReactQuill
