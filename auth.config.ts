@@ -14,10 +14,21 @@ export const config = {
     signIn: "/login",
   },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.member = user.member;
+    async jwt({ token, user, trigger }) {
+      // On sign in, fetch the full user from database
+      if (user?.email) {
+        // Query by email since OAuth provider ID !== database ID
+        const { prisma } = await import("@/lib/db");
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          select: { id: true, member: true },
+        });
+
+        if (dbUser) {
+          // Use the database user's ID and role
+          token.id = dbUser.id;
+          token.member = dbUser.member;
+        }
       }
       return token;
     },
@@ -31,12 +42,12 @@ export const config = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
-      
+
       if (isOnDashboard) {
         if (isLoggedIn) return true;
         return false; // Redirect to login
       }
-      
+
       return true;
     },
   },
