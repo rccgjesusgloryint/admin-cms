@@ -1,7 +1,27 @@
-import { signOut } from "@/auth";
+"use client";
+
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function UnauthorizedPage() {
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout error:", error);
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 to-slate-800">
       <div className="text-center space-y-6">
@@ -13,16 +33,14 @@ export default function UnauthorizedPage() {
             You don't have permission to access the admin panel.
           </p>
         </div>
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/login" });
-          }}
+        <Button
+          onClick={handleLogout}
+          variant="outline"
+          className="cursor-pointer"
+          disabled={isLoggingOut}
         >
-          <Button type="submit" variant="outline" className="cursor-pointer">
-            Sign Out
-          </Button>
-        </form>
+          {isLoggingOut ? "Signing out..." : "Sign Out"}
+        </Button>
       </div>
     </div>
   );

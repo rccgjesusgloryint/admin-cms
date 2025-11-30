@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
-  const isAdmin = req.auth?.user?.member === "ADMIN" || "OWNER";
+  const isAdmin =
+    req.auth?.user?.member === "ADMIN" || req.auth?.user?.member === "OWNER";
 
   // Allow public access to root landing page and login
   const publicRoutes = ["/", "/login"];
