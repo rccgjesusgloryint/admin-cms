@@ -42,3 +42,5 @@ next-env.d.ts
 .wrangler/
 .dev.vars
 
+# Local deployment script
+deploy.sh
