@@ -40,11 +40,11 @@ const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
     videoUrl: z.string().min(2).max(50),
     sermonTitle: z.string().min(2).max(50),
     thumbnail: z.string().min(2),
-    aiBreakdown: z.string().default(""),
-    videoTranscript: z.string().default(""),
-    summary: z.string().default(""),
-    sermonResources: z.array(z.object({ value: z.string() })).default([]),
-    speaker: z.string().default(""),
+    aiBreakdown: z.string().optional(),
+    videoTranscript: z.string().optional(),
+    summary: z.string().optional(),
+    sermonResources: z.array(z.object({ value: z.string() })).optional(),
+    speaker: z.string().optional(),
   });
 
   type FormData = z.infer<typeof formSchema>;
@@ -80,7 +80,13 @@ const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
         .filter((resource) => resource.trim() !== "") || [];
 
     let tempSermon = {
-      ...values,
+      videoUrl: values.videoUrl,
+      sermonTitle: values.sermonTitle,
+      thumbnail: values.thumbnail,
+      aiBreakdown: values.aiBreakdown || "",
+      videoTranscript: values.videoTranscript || "",
+      summary: values.summary || "",
+      speaker: values.speaker || "",
       sermonResources: filteredResources,
       hasNotes: filteredResources.length !== 0,
       tags,
