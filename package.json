@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "prisma generate --no-engine && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:worker": "npx @opennextjs/cloudflare build",
+    "preview": "npm run build:worker && wrangler dev",
+    "deploy": "npm run build:worker && wrangler deploy"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

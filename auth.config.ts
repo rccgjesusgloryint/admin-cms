@@ -41,8 +41,6 @@ export const config = {
     },
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      console.log("isLoggedIn", isLoggedIn);
-      console.log("expires", auth?.expires);
       const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
 
       if (isOnDashboard) {
