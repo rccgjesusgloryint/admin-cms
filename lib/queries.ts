@@ -10,8 +10,10 @@ import {
   EventMediaNoId,
   EventsType,
   FeedbackNoId,
+  GetTranscriptOptions,
   NewsletterEmail,
   Sermon,
+  TranscriptResponse,
   UploadMultipleFiles,
 } from "./types";
 
@@ -395,7 +397,9 @@ export const addEmailToNewsletter = async (newEmail: string) => {
 };
 
 export const getAllNewsletterEmails = async (): Promise<string[]> => {
-  const response = (await prisma.newsletterEmail.findMany({})).map((email) => email.email);
+  const response = (await prisma.newsletterEmail.findMany({})).map(
+    (email) => email.email
+  );
   return response;
 };
 
@@ -410,7 +414,6 @@ export const deleteNewsletterEmail = async (email: string) => {
     return { message: "Failed to remove subscriber", status: 400 };
   }
 };
-
 
 export const sendContactEmail = async ({
   email,
@@ -625,6 +628,7 @@ export const createSermon = async (sermon: CreateSermon, tags?: string[]) => {
     await prisma.sermon.create({
       data: {
         videoUrl: sermon.videoUrl,
+        videoTranscript: sermon.videoTranscript,
         sermonTitle: sermon.sermonTitle,
         thumbnail: sermon.thumbnail,
         tags: tags && [...tags],
@@ -921,15 +925,15 @@ export const getAllImagesv2 = async () => {
 
 /**
  * Fetches a single event gallery by ID with all associated images
- * 
+ *
  * This function retrieves a specific event's gallery data including:
  * - Event name and description
  * - Date and location information
  * - Array of image URLs
- * 
+ *
  * @param eventId - The numeric ID of the event to fetch
  * @returns Promise resolving to EventsMedia object or null if not found
- * 
+ *
  * @example
  * const gallery = await getEventGalleryById(123);
  * if (gallery) {
@@ -980,28 +984,29 @@ export const getAllReports = async () => {
 
 // Analytics queries
 export const getRecentActivity = async () => {
-  const [recentUsers, recentBlogs, recentSermons, recentEvents] = await Promise.all([
-    prisma.user.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      select: { id: true, name: true, email: true, createdAt: true },
-    }),
-    prisma.blog.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      select: { id: true, blogTitle: true, createdAt: true },
-    }),
-    prisma.sermon.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      select: { id: true, sermonTitle: true, createdAt: true },
-    }),
-    prisma.events.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      select: { id: true, event: true, createdAt: true },
-    }),
-  ]);
+  const [recentUsers, recentBlogs, recentSermons, recentEvents] =
+    await Promise.all([
+      prisma.user.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        select: { id: true, name: true, email: true, createdAt: true },
+      }),
+      prisma.blog.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        select: { id: true, blogTitle: true, createdAt: true },
+      }),
+      prisma.sermon.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        select: { id: true, sermonTitle: true, createdAt: true },
+      }),
+      prisma.events.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        select: { id: true, event: true, createdAt: true },
+      }),
+    ]);
 
   const activities = [
     ...recentUsers.map((u) => ({
@@ -1020,7 +1025,7 @@ export const getRecentActivity = async () => {
       id: `sermon-${s.id}`,
       type: "sermon" as const,
       title: `Sermon added: ${s.sermonTitle}`,
-      timestamp:s.createdAt,
+      timestamp: s.createdAt,
     })),
     ...recentEvents.map((e) => ({
       id: `event-${e.id}`,
@@ -1030,7 +1035,9 @@ export const getRecentActivity = async () => {
     })),
   ];
 
-  return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 10);
+  return activities
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .slice(0, 10);
 };
 
 export const getAnalyticsData = async () => {
@@ -1095,27 +1102,27 @@ export const getNewUsersLast24Hours = async () => {
 // Settings queries
 export const getSiteSettings = async () => {
   let settings = await prisma.siteSettings.findFirst();
-  
+
   // Create default settings if none exist
   if (!settings) {
     settings = await prisma.siteSettings.create({
       data: {},
     });
   }
-  
+
   return settings;
 };
 
 export const updateSiteSettings = async (data: any, userId?: string) => {
   const existing = await prisma.siteSettings.findFirst();
-  
+
   if (existing) {
     return await prisma.siteSettings.update({
       where: { id: existing.id },
       data: { ...data, updatedBy: userId },
     });
   }
-  
+
   return await prisma.siteSettings.create({
     data: { ...data, updatedBy: userId },
   });
@@ -1138,11 +1145,14 @@ export const createNotification = async (data: {
   });
 };
 
-export const updateNotification = async (id: string, data: {
-  notification?: string;
-  shouldNotify?: boolean;
-  notificationDuration?: string;
-}) => {
+export const updateNotification = async (
+  id: string,
+  data: {
+    notification?: string;
+    shouldNotify?: boolean;
+    notificationDuration?: string;
+  }
+) => {
   return await prisma.notification.update({
     where: { id },
     data,
@@ -1154,3 +1164,46 @@ export const deleteNotification = async (id: string) => {
     where: { id },
   });
 };
+
+const TRANSCRIPT_API_KEY = process.env.TRANSCRIPT_API_KEY;
+const TRANSCRIPT_API_URL = process.env.TRANSCRIPT_API_URL;
+
+export async function getSermonTranscript(
+  videoUrl: string,
+  options: GetTranscriptOptions
+): Promise<TranscriptResponse | null> {
+  const {
+    format = "text",
+    includeTimestamp = true,
+    sendMetadata = false,
+  } = options;
+
+  const params = new URLSearchParams({
+    video_url: videoUrl,
+    format,
+    include_timestamp: includeTimestamp.toString(),
+    send_metadata: sendMetadata.toString(),
+  });
+
+  try {
+    const response = await fetch(
+      `${TRANSCRIPT_API_URL}/youtube/transcript?${params}`,
+      {
+        headers: {
+          Authorization: `Bearer ${TRANSCRIPT_API_KEY}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return data;
+  } catch (error) {
+    console.error("Error fetching transcript:", error);
+    throw error;
+  }
+}

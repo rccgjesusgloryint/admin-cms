@@ -1,15 +1,12 @@
-import { createSermon, getAllSermonsInServer } from "@/lib/queries";
+import {
+  createSermon,
+  getAllSermonsInServer,
+  getSermonTranscript,
+} from "@/lib/queries";
 import { YOUTUBE_playlistItem } from "@/lib/types";
 
 export const syncYouTubeDb = async (): Promise<void> => {
   // console.log("FUNCTION CALL!!");
-  
-  // Early return if YouTube API is not configured
-  if (!process.env.YOUTUBE_API_BASE_URL || !process.env.YOUTUBE_API_KEY) {
-    console.log("⚠️ YouTube API not configured, skipping sync");
-    return;
-  }
-  
   try {
     // STEP 1: Get uploads playlist ID
     const channelRes = await getRequest(
@@ -47,7 +44,7 @@ export const syncYouTubeDb = async (): Promise<void> => {
             item.snippet.title.includes("Sermon")) &&
           !sermonTitles.has(item.snippet.title)
       )
-      .map((item) => {
+      .map(async (item) => {
         const s = item.snippet;
         const t = s.thumbnails ?? ({} as any);
         const thumbUrl =
@@ -57,10 +54,25 @@ export const syncYouTubeDb = async (): Promise<void> => {
           t.medium?.url ??
           t.default?.url ??
           "";
+        const transcript = await getSermonTranscript(s.resourceId.videoId, {
+          format: "text",
+          includeTimestamp: true,
+          sendMetadata: false,
+        });
+
+        if (!transcript || transcript.transcript === null) {
+          console.log(
+            "[LOGS:INFO]: Something went wrong with sermon transcription!"
+          );
+          throw new Error("Error generating transcript");
+        }
+
         return {
           sermonTitle: s.title,
           videoUrl: `https://www.youtube.com/watch?v=${s.resourceId?.videoId}`,
           thumbnail: thumbUrl,
+          videoId: s.resourceId?.videoId,
+          videoTranscript: transcript.transcript,
         };
       });
 
@@ -69,7 +81,10 @@ export const syncYouTubeDb = async (): Promise<void> => {
       return;
     }
 
-    await Promise.all(sermonsToAdd.map((s) => createSermon(s)));
+    // TODO: Execute AI Features automations
+
+    // STEP 5: Store new sermons
+    await Promise.all(sermonsToAdd.map(async (s) => createSermon(await s)));
 
     console.log(`✅ Synced ${sermonsToAdd.length} new sermons from YouTube.`);
   } catch (err) {

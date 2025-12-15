@@ -115,6 +115,7 @@ export type NewsletterEmail = {
 export type CreateSermon = {
   id?: number;
   videoUrl: string;
+  videoTranscript: string;
   sermonTitle: string;
   thumbnail: string;
   tags?: string[];
@@ -275,4 +276,16 @@ export type YOUTUBE_playlistItem = {
   status: {
     privacyStatus: string;
   };
+};
+
+export type GetTranscriptOptions = {
+  format: "text" | "json";
+  includeTimestamp: boolean;
+  sendMetadata: boolean;
+};
+
+export type TranscriptResponse = {
+  video_id: string;
+  language: string;
+  transcript: string;
 };
