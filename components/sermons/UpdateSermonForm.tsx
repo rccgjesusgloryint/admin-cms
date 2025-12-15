@@ -27,6 +27,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, X } from "lucide-react";
 
+import dynamic from "next/dynamic";
+import "react-quill-new/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
+
 interface Props {
   sermon: Sermon;
   setRefresh: Dispatch<SetStateAction<boolean>>;
@@ -269,17 +274,24 @@ const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <div className="flex gap-2">
-                          <Textarea placeholder="Paste here..." {...field} />
+                        <div className="flex flex-col gap-2">
+                          <div className="flex-1">
+                            <ReactQuill
+                              value={field.value}
+                              onChange={(content) => field.onChange(content)}
+                              placeholder="Enter sermon resource content..."
+                            />
+                          </div>
                           {fields.length > 1 && (
                             <Button
                               type="button"
                               variant="outline"
-                              size="icon"
+                              size="sm"
                               onClick={() => remove(index)}
-                              className="shrink-0"
+                              className="self-end"
                             >
-                              <X className="h-4 w-4" />
+                              <X className="h-4 w-4 mr-1" />
+                              Remove
                             </Button>
                           )}
                         </div>
