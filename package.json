@@ -16,6 +16,7 @@
     "@aws-sdk/client-s3": "^3.940.0",
     "@aws-sdk/s3-request-presigner": "^3.940.0",
     "@hookform/resolvers": "^5.2.2",
+    "@openrouter/sdk": "^0.2.11",
     "@prisma/client": "^5.22.0",
     "@prisma/extension-accelerate": "^2.0.2",
     "@radix-ui/react-dropdown-menu": "^2.1.16",

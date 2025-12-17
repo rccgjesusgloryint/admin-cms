@@ -17,7 +17,7 @@ export function SermonsList() {
 
   async function fetchSermons() {
     try {
-      const res = await getAllSermons()
+      const res = await getAllSermons();
       setSermons(res);
     } catch (error) {
       console.error("Error fetching sermons:", error);
@@ -28,10 +28,10 @@ export function SermonsList() {
 
   async function handleDelete(id: number) {
     if (!confirm("Are you sure you want to delete this sermon?")) return;
-    
+
     try {
       await deleteSermon(id);
-      setSermons(sermons.filter(s => s.id !== id));
+      setSermons(sermons.filter((s) => s.id !== id));
     } catch (error) {
       console.error("Error deleting sermon:", error);
     }
@@ -52,8 +52,8 @@ export function SermonsList() {
                     <Pencil className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="destructive"
                   onClick={() => handleDelete(sermon.id)}
                 >

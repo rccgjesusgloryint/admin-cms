@@ -21,7 +21,11 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 
 import toast from "react-hot-toast";
-import { updateSermon } from "@/lib/queries";
+import {
+  generateAISermonBreakdown,
+  generateAiSummary,
+  updateSermon,
+} from "@/lib/queries";
 import { Sermon } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +33,7 @@ import { Plus, X } from "lucide-react";
 
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
+import { getYoutubeVidId } from "@/lib/actions";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
@@ -40,6 +45,10 @@ interface Props {
 
 const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
   const [tags, setTags] = React.useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [emptyAiFeatures, setEmptyAiFeatures] = React.useState<boolean>(
+    sermon.videoTranscript === "" || sermon.aiBreakdown === ""
+  );
 
   const formSchema = z.object({
     videoUrl: z.string().min(2).max(50),
@@ -130,6 +139,33 @@ const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
       console.log("ERROR Updating Sermon:", error);
     }
   }
+  async function handleGenerateSummary() {
+    const transcript = form.getValues("videoTranscript");
+    if (!transcript) {
+      toast.error("Please provide a video transcript first.");
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      const generatedSummary = await generateAiSummary(transcript, sermon.id!);
+      const generateBreakdown = await generateAISermonBreakdown(
+        sermon.id!,
+        transcript,
+        getYoutubeVidId(sermon.videoUrl)
+      );
+      form.setValue("summary", generatedSummary);
+      form.setValue("aiBreakdown", generateBreakdown);
+      setEmptyAiFeatures((prev) => !prev);
+      toast.success("AI Summary generated successfully!");
+      toast.success("AI Breakdown generated successfully!");
+    } catch (error) {
+      console.error("Error generating ai features:", error);
+      toast.error("Failed to generate ai features.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   return (
     <Card className="w-full h-full mt-5">
@@ -144,6 +180,17 @@ const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
             onSubmit={form.handleSubmit(onSubmit)}
             className="w-full space-y-4"
           >
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleGenerateSummary}
+                disabled={isGenerating || !emptyAiFeatures}
+                className="cursor-pointer"
+              >
+                {isGenerating ? "Generating..." : "Generate AI Features"}
+              </Button>
+            </div>
             <FormField
               control={form.control}
               name="videoUrl"
@@ -174,23 +221,6 @@ const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
 
             <FormField
               control={form.control}
-              name="aiBreakdown"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>AI Breakdown</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Paste the ai breakdown here..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="videoTranscript"
               render={({ field }) => (
                 <FormItem>
@@ -211,10 +241,27 @@ const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
               name="summary"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Summary</FormLabel>
+                  <FormLabel>AI Summary</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Paste the ai summary here..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="aiBreakdown"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>AI Breakdown</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Paste the ai breakdown here..."
                       {...field}
                     />
                   </FormControl>
