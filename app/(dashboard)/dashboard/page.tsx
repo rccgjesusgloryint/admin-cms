@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Video, Users, TrendingUp } from "lucide-react";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { SystemStatus } from "@/components/dashboard/SystemStatus";
+import { ModelManager } from "@/components/ai/ModelManager";
 import { getRecentActivity, getSystemStatus, getNewUsersLast24Hours } from "@/lib/queries";
 
 export default async function DashboardPage() {
@@ -84,6 +85,10 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentActivity activities={recentActivity} />
         <SystemStatus systemStatus={systemStatus} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        <ModelManager />
       </div>
     </div>
   );

@@ -25,7 +25,7 @@ import { Blog, EventMedia, Feedback, Image, Media, Role } from "@prisma/client";
 import { shuffle } from "./actions";
 import { syncYouTubeDb } from "./syncYouTubeDb";
 
-import { OpenRouter } from "@openrouter/sdk";
+import { callAIWithFallback } from "./ai-config";
 
 export const allUsers = async () => {
   const res = await prisma.user.findMany({});
@@ -1170,11 +1170,7 @@ export const deleteNotification = async (id: string) => {
 const TRANSCRIPT_API_KEY = process.env.TRANSCRIPT_API_KEY;
 const TRANSCRIPT_API_URL = process.env.TRANSCRIPT_API_URL;
 
-const openRouter = new OpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  httpReferer: process.env.BASE_URL, // Optional. Site URL for rankings on openrouter.ai.
-  xTitle: "RCCG Jesus Glory Intl", // Optional. Site title for rankings on openrouter.ai.
-});
+// OpenRouter client is now managed in ai-config.ts with fallback support
 
 export async function getSermonTranscript(
   videoUrl: string,
@@ -1244,18 +1240,16 @@ DO NOT INCLUDE THE '''html ... html''' tags at the start and the end of the code
 Transcript: ${transcript}
 `;
 
-    const completion = await openRouter.chat.send({
-      model: "openai/gpt-oss-20b:free",
-      messages: [
-        {
-          role: "user",
-          content: modelPrompt,
-        },
-      ],
-      stream: false,
-    });
+    const { content: aiSummaryContent, modelUsed } = await callAIWithFallback([
+      {
+        role: "user",
+        content: modelPrompt,
+      },
+    ]);
 
-    const aiSummary = completion.choices[0]?.message?.content as string;
+    console.log(`🤖 AI Summary generated using model: ${modelUsed}`);
+
+    const aiSummary = aiSummaryContent;
 
     if (!aiSummary) {
       throw new Error(
@@ -1354,18 +1348,18 @@ Transcript: ${transcript}
 Video ID: ${videoId}
 `;
 
-    const completion = await openRouter.chat.send({
-      model: "openai/gpt-oss-20b:free",
-      messages: [
+    const { content: aiBreakdownContent, modelUsed } = await callAIWithFallback(
+      [
         {
           role: "user",
           content: modelPrompt,
         },
-      ],
-      stream: false,
-    });
+      ]
+    );
 
-    const aiBreakdown = completion.choices[0]?.message?.content as string;
+    console.log(`🤖 AI Breakdown generated using model: ${modelUsed}`);
+
+    const aiBreakdown = aiBreakdownContent;
 
     if (!aiBreakdown) {
       throw new Error(

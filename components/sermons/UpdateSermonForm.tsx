@@ -36,6 +36,7 @@ import { Plus, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
 import { getYoutubeVidId } from "@/lib/actions";
+import { ModelStatusPreview } from "@/components/ai/ModelStatusPreview";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
@@ -221,7 +222,8 @@ const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
             onSubmit={form.handleSubmit(onSubmit)}
             className="w-full space-y-4"
           >
-            <div className="flex justify-end">
+            <div className="flex justify-end items-center gap-3">
+              <ModelStatusPreview />
               <Button
                 type="button"
                 variant="secondary"
