@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -141,27 +143,66 @@ const UpdateSermonForm = ({ sermon, setRefresh, setClose }: Props) => {
   }
   async function handleGenerateSummary() {
     const transcript = form.getValues("videoTranscript");
-    if (!transcript) {
+    if (!transcript || transcript.trim() === "") {
       toast.error("Please provide a video transcript first.");
+      return;
+    }
+
+    if (!sermon.id) {
+      toast.error("Sermon ID is missing.");
       return;
     }
 
     try {
       setIsGenerating(true);
-      const generatedSummary = await generateAiSummary(transcript, sermon.id!);
-      const generateBreakdown = await generateAISermonBreakdown(
-        sermon.id!,
-        transcript,
-        getYoutubeVidId(sermon.videoUrl)
-      );
-      form.setValue("summary", generatedSummary);
-      form.setValue("aiBreakdown", generateBreakdown);
-      setEmptyAiFeatures((prev) => !prev);
-      toast.success("AI Summary generated successfully!");
-      toast.success("AI Breakdown generated successfully!");
+
+      // Validate and extract YouTube video ID
+      let videoId: string;
+      try {
+        videoId = getYoutubeVidId(sermon.videoUrl);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Invalid YouTube URL";
+        toast.error(`Invalid video URL: ${errorMessage}`);
+        setIsGenerating(false);
+        return;
+      }
+
+      // Generate AI features sequentially to better handle errors
+      try {
+        const generatedSummary = await generateAiSummary(transcript, sermon.id);
+        form.setValue("summary", generatedSummary);
+        toast.success("AI Summary generated successfully!");
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        console.error("Error generating AI summary:", error);
+        toast.error(`Failed to generate AI summary: ${errorMessage}`);
+        setIsGenerating(false);
+        return;
+      }
+
+      try {
+        const generateBreakdown = await generateAISermonBreakdown(
+          sermon.id,
+          transcript,
+          videoId
+        );
+        form.setValue("aiBreakdown", generateBreakdown);
+        toast.success("AI Breakdown generated successfully!");
+        setEmptyAiFeatures((prev) => !prev);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        console.error("Error generating AI breakdown:", error);
+        toast.error(`Failed to generate AI breakdown: ${errorMessage}`);
+        // Don't return here - summary was successful, just breakdown failed
+      }
     } catch (error) {
       console.error("Error generating ai features:", error);
-      toast.error("Failed to generate ai features.");
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      toast.error(`Failed to generate AI features: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
     }
