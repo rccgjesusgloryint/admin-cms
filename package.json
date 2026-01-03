@@ -15,6 +15,7 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@aws-sdk/client-s3": "^3.940.0",
     "@aws-sdk/s3-request-presigner": "^3.940.0",
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@openrouter/sdk": "^0.2.11",
     "@prisma/client": "^5.22.0",

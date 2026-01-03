@@ -1,4 +1,5 @@
 import { OpenRouter } from "@openrouter/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { prisma } from "./db";
 import { AI_MODELS, type AIModel } from "./ai-models";
 
@@ -18,6 +19,9 @@ const openRouter = new OpenRouter({
   httpReferer: process.env.BASE_URL,
   xTitle: "RCCG Jesus Glory Intl",
 });
+
+// Initialize Google Generative AI client
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
 
 interface AIMessage {
   role: "user" | "assistant" | "system";
@@ -119,6 +123,35 @@ function isRateLimitError(error: unknown): boolean {
 }
 
 /**
+ * Call Google Generative AI model
+ */
+async function callGoogleGenAI(
+  model: string,
+  messages: AIMessage[]
+): Promise<string> {
+  const modelName = model.replace("google:", "");
+  const genModel = genAI.getGenerativeModel({ model: modelName });
+
+  // Convert messages to Google format
+  // Note: Google's API has a slightly different structure, usually handled by history or prompt
+  // For simplicity, we'll combine user/system prompts appropriately or use chat history if needed.
+  // This simple implementation concatenates for a single prompt or handles basic chat.
+
+  const history = messages.slice(0, -1).map((msg) => ({
+    role: msg.role === "assistant" ? "model" : "user",
+    parts: [{ text: msg.content }],
+  }));
+
+  const lastMessage = messages[messages.length - 1];
+  const chat = genModel.startChat({
+    history: history,
+  });
+
+  const result = await chat.sendMessage(lastMessage.content);
+  return result.response.text();
+}
+
+/**
  * Check model health by performing a lightweight API call
  */
 export async function checkModelHealth(model: string): Promise<boolean> {
@@ -131,15 +164,30 @@ export async function checkModelHealth(model: string): Promise<boolean> {
       },
     ];
 
-    const completion = await openRouter.chat.send({
-      model,
-      messages: testMessages,
-      stream: false,
-      maxTokens: 5, // Minimal tokens for health check
-    });
+    let content: string | null = null;
+
+    if (model.startsWith("google:")) {
+      content = await callGoogleGenAI(model, testMessages);
+    } else {
+      const completion = await openRouter.chat.send({
+        model,
+        messages: testMessages,
+        stream: false,
+        maxTokens: 5, // Minimal tokens for health check
+      });
+      const rawContent = completion.choices[0]?.message?.content || null;
+
+      if (Array.isArray(rawContent)) {
+        content = rawContent
+          .filter((item) => item.type === "text")
+          .map((item) => (item as { type: "text"; text: string }).text)
+          .join("");
+      } else {
+        content = rawContent;
+      }
+    }
 
     // If we get a response, model is available
-    const content = completion.choices[0]?.message?.content;
     if (content !== undefined && content !== null) {
       updateModelStatus(model, true);
       return true;
@@ -328,26 +376,33 @@ export async function callAIWithFallback(
       }
 
       // Attempt the actual API call
-      const completion = await openRouter.chat.send({
-        model,
-        messages,
-        stream: false,
-      });
-
-      const rawContent = completion.choices[0]?.message?.content;
-
-      // Handle both string and array content types
       let content: string;
-      if (typeof rawContent === "string") {
-        content = rawContent;
-      } else if (Array.isArray(rawContent)) {
-        // Extract text from content items
-        content = rawContent
-          .filter((item) => item.type === "text")
-          .map((item) => (item as { type: "text"; text: string }).text)
-          .join("");
+
+      if (model.startsWith("google:")) {
+        // Direct Google Call
+        content = await callGoogleGenAI(model, messages);
       } else {
-        throw new Error(`No content returned from model: ${model}`);
+        // OpenRouter Call
+        const completion = await openRouter.chat.send({
+          model,
+          messages,
+          stream: false,
+        });
+
+        const rawContent = completion.choices[0]?.message?.content;
+
+        // Handle both string and array content types
+        if (typeof rawContent === "string") {
+          content = rawContent;
+        } else if (Array.isArray(rawContent)) {
+          // Extract text from content items
+          content = rawContent
+            .filter((item) => item.type === "text")
+            .map((item) => (item as { type: "text"; text: string }).text)
+            .join("");
+        } else {
+          throw new Error(`No content returned from model: ${model}`);
+        }
       }
 
       if (!content) {
