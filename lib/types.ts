@@ -289,3 +289,18 @@ export type TranscriptResponse = {
   language: string;
   transcript: string;
 };
+
+// R2 Media Recovery Types
+export type R2ObjectInfo = {
+  key: string;
+  url: string;
+  size: number;
+  lastModified: string;
+};
+
+export type R2ListResponse = {
+  objects: R2ObjectInfo[];
+  continuationToken?: string;
+  isTruncated: boolean;
+  totalCount: number;
+};

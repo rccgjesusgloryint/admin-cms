@@ -38,6 +38,7 @@ import toast from "react-hot-toast";
 import { updateSiteSettings } from "@/lib/queries";
 import { useTheme } from "next-themes";
 import { AI_MODELS } from "@/lib/ai-models";
+import { MediaRecovery } from "./MediaRecovery";
 
 interface Props {
   settings: any;
@@ -168,12 +169,13 @@ export function SettingsForm({ settings, userId }: Props) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="ai">AI</TabsTrigger>
+            <TabsTrigger value="media-recovery">Media Recovery</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-4">
@@ -628,6 +630,10 @@ export function SettingsForm({ settings, userId }: Props) {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="media-recovery" className="space-y-4">
+            <MediaRecovery />
           </TabsContent>
         </Tabs>
 

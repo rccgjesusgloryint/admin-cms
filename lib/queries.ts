@@ -873,6 +873,23 @@ export const saveImage = async (file: DbImage) => {
 
 export const saveEventImages = async (file: EventMediaNoId) => {
   try {
+    // Check if event already exists to get existing images for deduplication
+    const existingRecord = await prisma.eventMedia.findUnique({
+      where: { event: file.event },
+      select: { images: true },
+    });
+
+    // Filter out URLs that already exist in the event's images array
+    const existingUrls = new Set(existingRecord?.images ?? []);
+    const newUniqueImages = file.images.filter((url) => !existingUrls.has(url));
+
+    // If all images are duplicates, just return the existing record
+    if (existingRecord && newUniqueImages.length === 0) {
+      return await prisma.eventMedia.findUnique({
+        where: { event: file.event },
+      });
+    }
+
     return await prisma.eventMedia.upsert({
       where: { event: file.event },
       update: {
@@ -880,7 +897,7 @@ export const saveEventImages = async (file: EventMediaNoId) => {
         date: file.date,
         location: file.location ?? undefined,
         description: file.description ?? undefined,
-        images: { push: file.images }, // append to the array
+        images: { push: newUniqueImages }, // append only unique images
       },
       create: {
         event: file.event,
@@ -922,6 +939,22 @@ export const getAllImages = async () => {
 export const getAllImagesv2 = async () => {
   const response = await prisma.eventMedia.findMany({});
 
+  return response;
+};
+
+/**
+ * Fetches all event media entries for the recovery feature dropdown
+ * Returns id and event name for selection
+ */
+export const getAllEventMediaForRecovery = async () => {
+  const response = await prisma.eventMedia.findMany({
+    select: {
+      id: true,
+      event: true,
+      date: true,
+    },
+    orderBy: { date: "desc" },
+  });
   return response;
 };
 

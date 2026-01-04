@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getModelStatuses, AI_MODELS } from "@/lib/ai-config";
+import { AI_MODELS } from "@/lib/ai-config";
 import { isAdmin } from "@/lib/queries";
+import { prisma } from "@/lib/db";
 
 export async function GET() {
   try {
@@ -17,9 +18,13 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const statusMap = getModelStatuses();
+    // Read model statuses from database for persistence across serverless instances
+    const dbStatuses = await prisma.aIModelStatus.findMany();
+    const dbStatusMap = new Map(dbStatuses.map((s) => [s.id, s]));
+
     const statuses = AI_MODELS.map((model) => {
-      const status = statusMap.get(model);
+      const status = dbStatusMap.get(model);
+
       // If model has been tested, use its actual status
       // If not tested, default to available: false (unknown state)
       const isAvailable = status?.hasBeenTested

@@ -61,7 +61,7 @@ let currentActiveModelIndex = 0;
 const PRIMARY_MODEL_INDEX = 0;
 
 /**
- * Update model status in the status map
+ * Update model status in the status map AND persist to database
  */
 function updateModelStatus(
   model: string,
@@ -90,6 +90,66 @@ function updateModelStatus(
   }
 
   modelStatusMap.set(model, status);
+
+  // Persist to database asynchronously (fire and forget for performance)
+  persistModelStatusToDB(model, status).catch((err) => {
+    console.error(`Failed to persist model status to DB: ${err}`);
+  });
+}
+
+/**
+ * Persist model status to database
+ */
+async function persistModelStatusToDB(
+  model: string,
+  status: ModelStatus
+): Promise<void> {
+  try {
+    await prisma.aIModelStatus.upsert({
+      where: { id: model },
+      update: {
+        available: status.available,
+        hasBeenTested: status.hasBeenTested,
+        lastChecked: status.lastChecked,
+        lastFailure: status.lastFailure,
+        errorCount: status.errorCount,
+        lastError: status.lastError,
+      },
+      create: {
+        id: model,
+        available: status.available,
+        hasBeenTested: status.hasBeenTested,
+        lastChecked: status.lastChecked,
+        lastFailure: status.lastFailure,
+        errorCount: status.errorCount,
+        lastError: status.lastError,
+      },
+    });
+  } catch (error) {
+    console.error(`Error persisting model status for ${model}:`, error);
+  }
+}
+
+/**
+ * Load all model statuses from database into memory cache
+ */
+async function loadModelStatusesFromDB(): Promise<void> {
+  try {
+    const dbStatuses = await prisma.aIModelStatus.findMany();
+    for (const dbStatus of dbStatuses) {
+      modelStatusMap.set(dbStatus.id, {
+        available: dbStatus.available,
+        hasBeenTested: dbStatus.hasBeenTested,
+        lastChecked: dbStatus.lastChecked,
+        lastFailure: dbStatus.lastFailure ?? undefined,
+        errorCount: dbStatus.errorCount,
+        lastError: dbStatus.lastError ?? undefined,
+      });
+    }
+    console.log(`✅ Loaded ${dbStatuses.length} model statuses from database`);
+  } catch (error) {
+    console.error("Error loading model statuses from DB:", error);
+  }
 }
 
 /**
