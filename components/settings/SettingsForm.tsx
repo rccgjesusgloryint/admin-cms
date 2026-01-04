@@ -38,11 +38,12 @@ import toast from "react-hot-toast";
 import { updateSiteSettings } from "@/lib/queries";
 import { useTheme } from "next-themes";
 import { AI_MODELS } from "@/lib/ai-models";
-import { MediaRecovery } from "./MediaRecovery";
+import { ExternalLink, Wrench } from "lucide-react";
 
 interface Props {
   settings: any;
   userId?: string;
+  mediaToolUrl?: string;
 }
 
 const settingsSchema = z.object({
@@ -77,7 +78,7 @@ interface ModelStatus {
   hasBeenTested?: boolean;
 }
 
-export function SettingsForm({ settings, userId }: Props) {
+export function SettingsForm({ settings, userId, mediaToolUrl }: Props) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modelStatuses, setModelStatuses] = useState<ModelStatus[]>([]);
@@ -175,7 +176,7 @@ export function SettingsForm({ settings, userId }: Props) {
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="ai">AI</TabsTrigger>
-            <TabsTrigger value="media-recovery">Media Recovery</TabsTrigger>
+            <TabsTrigger value="tools">Tools</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-4">
@@ -632,8 +633,48 @@ export function SettingsForm({ settings, userId }: Props) {
             </Card>
           </TabsContent>
 
-          <TabsContent value="media-recovery" className="space-y-4">
-            <MediaRecovery />
+          <TabsContent value="tools" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wrench className="h-5 w-5" />
+                  External Tools
+                </CardTitle>
+                <CardDescription>
+                  Access external tools and utilities for managing your media
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <h4 className="font-medium">Media Editing Tool</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Advanced media recovery and editing utilities for
+                        managing your church media files
+                      </p>
+                    </div>
+                    {mediaToolUrl ? (
+                      <Button type="button" variant="outline" asChild>
+                        <a
+                          href={mediaToolUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2"
+                        >
+                          Open Tool
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        Not configured
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 

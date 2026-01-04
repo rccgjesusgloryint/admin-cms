@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 export default async function SettingsPage() {
   const session = await auth();
   const settings = await getSiteSettings();
+  const mediaToolUrl = process.env.MEDIA_TOOL_URL;
 
   return (
     <div className="space-y-6">
@@ -15,7 +16,11 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <SettingsForm settings={settings} userId={session?.user?.id} />
+      <SettingsForm
+        settings={settings}
+        userId={session?.user?.id}
+        mediaToolUrl={mediaToolUrl}
+      />
     </div>
   );
 }
