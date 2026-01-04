@@ -1102,17 +1102,29 @@ export const getNewUsersLast24Hours = async () => {
 };
 
 // Settings queries
-export const getSiteSettings = async () => {
-  let settings = await prisma.siteSettings.findFirst();
+export const getSiteSettings = async (retries = 3): Promise<any> => {
+  try {
+    let settings = await prisma.siteSettings.findFirst();
 
-  // Create default settings if none exist
-  if (!settings) {
-    settings = await prisma.siteSettings.create({
-      data: {},
-    });
+    // Create default settings if none exist
+    if (!settings) {
+      settings = await prisma.siteSettings.create({
+        data: {},
+      });
+    }
+
+    return settings;
+  } catch (error: any) {
+    // Handle Prisma Accelerate cold start connection issues
+    if (error?.code === "P2021" && retries > 0) {
+      console.log(
+        `⏳ Database connection initializing, retrying... (${retries} attempts left)`
+      );
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return getSiteSettings(retries - 1);
+    }
+    throw error;
   }
-
-  return settings;
 };
 
 export const updateSiteSettings = async (data: any, userId?: string) => {
