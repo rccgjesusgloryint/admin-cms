@@ -44,3 +44,8 @@ next-env.d.ts
 
 # Local deployment script
 deploy.sh
+
+# Database backups (stored locally during development)
+backups/
+*.sql
+*.sql.gz

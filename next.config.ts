@@ -22,6 +22,33 @@ const nextConfig: NextConfig = {
 
     return config;
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+        pathname: "**",
+      },
+      {
+        protocol: "https",
+        hostname: "i.ytimg.com",
+        pathname: "**",
+      },
+      {
+        protocol: "https",
+        hostname: "img.jesusgloryintl.com",
+      },
+      {
+        protocol: "https",
+        hostname: "test.jesusgloryintl.com",
+      },
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+        pathname: "**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
