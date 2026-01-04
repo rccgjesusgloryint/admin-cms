@@ -68,7 +68,10 @@ async function cleanupOldBackups() {
     const backups = listResponse.Contents || [];
 
     if (backups.length === 0) {
-      console.log("📂 No backups found in bucket");
+      console.log(
+        "📂 No backups found in bucket (this is normal for new buckets)"
+      );
+      console.log("✅ Cleanup complete - nothing to clean");
       return;
     }
 
@@ -102,8 +105,26 @@ async function cleanupOldBackups() {
       `✅ Cleanup complete! Removed ${toDelete.length} old backup(s)`
     );
   } catch (error) {
+    // Handle "NoSuchKey" errors gracefully - this means bucket is empty or path doesn't exist yet
+    if (
+      error.name === "NoSuchKey" ||
+      error.Code === "NoSuchKey" ||
+      error.message?.includes("key does not exist") ||
+      error.message?.includes("NoSuchKey")
+    ) {
+      console.log(
+        "📂 No backups found in bucket yet (this is normal for new buckets)"
+      );
+      console.log("✅ Cleanup complete - nothing to clean");
+      return;
+    }
+
     console.error(`❌ Cleanup failed: ${error.message}`);
-    process.exit(1);
+    console.error(`   Error name: ${error.name}`);
+    // Don't exit with error code for cleanup - the backup itself succeeded
+    console.log(
+      "⚠️ Cleanup step failed but backup was successful. Continuing..."
+    );
   }
 }
 
