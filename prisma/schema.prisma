@@ -11,11 +11,11 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+ directUrl = env("DIRECT_URL")
 }
 
 enum Role {
-  ADMIN
+  ADMIN  
   MEMBER
   MINISTER
   OWNER
@@ -29,19 +29,22 @@ enum Permissions {
 }
 
 model User {
-  id            String    @id @default(uuid())
+  id            String          @id @default(uuid())
   name          String?
-  email         String    @unique
+  email         String          @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   sessions      Session[]
-  member        Role      @default(MEMBER)
-
+  member        Role @default(MEMBER)
+ 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  updatedSermons Sermon[] @relation("SermonUpdatedBy")
+  updatedBlogs   Blog[]   @relation("BlogUpdatedBy")
+  roadmapVotes   RoadmapVote[]
 }
-
+ 
 model Account {
   userId            String
   type              String
@@ -54,21 +57,21 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
+ 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+ 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+ 
   @@id([provider, providerAccountId])
 }
-
+ 
 model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+ 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -84,58 +87,62 @@ model Media {
 }
 
 model Image {
-  id          String   @id @default(uuid())
-  type        String
+  id         String   @id @default(uuid())
+  type       String
   filename    String
-  event       String
-  bucket      String
-  url         String?
+  event      String
+  bucket     String
+  url        String?
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Events {
   id          Int      @id @default(autoincrement())
   event       String
-  date        String[] @default(["", ""])
+  date        String[]  @default(["", ""])
   location    String
   description Json
-  monthly     Boolean  @default(false)
+  monthly     Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model EventMedia {
-  id          Int      @id @default(autoincrement())
-  event       String   @unique
+  id          Int       @id @default(autoincrement())
+  event       String    @unique
   date        DateTime
-  location    String? // optional
-  description String? // optional
-  images      String[] // array of image URLs
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  location    String?   // optional
+  description String?   // optional
+  images      String[]  // array of image URLs
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
+
 
 model NewsletterEmail {
   email String @id // Email as the primary key (unique identifier)
 }
 
+
 model Sermon {
-  id              Int      @id @default(autoincrement())
-  videoUrl        String
+  id              Int       @id @default(autoincrement())
+  videoUrl        String    @unique
   sermonTitle     String
   tags            String[]
   likes           Int?
-  sermonResources String[] @default([])
-  thumbnail       String?  @default("")
-  summary         String   @default("")
-  aiBreakdown     String   @default("") // breakdown of the summary via the transcript
-  videoTranscript String   @default("")
-  speaker         String   @default("")
-  hasNotes        Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  sermonResources String[]  @default([])
+  thumbnail       String?   @default("")
+  summary         String    @default("")
+  aiBreakdown     String    @default("") // breakdown of the summary via the transcript
+  videoTranscript String    @default("")
+  speaker         String    @default("")
+  hasNotes        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  updatedById     String?
+  updatedBy       User?     @relation("SermonUpdatedBy", fields: [updatedById], references: [id])
 }
 
 model Comment {
@@ -147,72 +154,79 @@ model Comment {
 }
 
 model Blog {
-  id              String        @id @default(uuid())
-  blogTitle       String
-  blogDescription String
-  blogImage       String?
-  blogContent     String
-  blogAuthor      String
-  series          Blog_Series[]
-  category        String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                  String  @default(uuid()) @id
+  blogTitle           String
+  blogDescription     String
+  blogImage           String?  
+  blogContent         String
+  blogAuthor          String
+  series              Blog_Series[]
+  category            String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  updatedById         String?
+  updatedBy           User?             @relation("BlogUpdatedBy", fields: [updatedById], references: [id])
 }
 
-model Blog_Series {
-  id        Int      @id @default(autoincrement())
-  blog      Blog?    @relation(fields: [blogId], references: [id])
-  blogId    String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Blog_Series{
+  id                  Int      @id @default(autoincrement())
+  blog                Blog?    @relation(fields: [blogId], references: [id])
+  blogId              String?  @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model Notification {
-  id                   String   @id @default(uuid())
-  notification         String
-  shouldNotify         Boolean
-  notificationDuration String //how long should the notfication be visible for when triggered
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                          String  @default(uuid()) @id
+  notification                String
+  shouldNotify                Boolean
+  notificationDuration        String //how long should the notfication be visible for when triggered
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt   
+}
+
+model RoadmapVote {
+  id            String   @id @default(uuid())
+  linearIssueId String   // ID of the Linear issue
+  userId        String   // User who voted
+  voteType      String   // "up" or "down"
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([linearIssueId, userId]) // One vote per user per issue
 }
 
 model Feedback {
   id           Int      @id @default(autoincrement())
-  name         String? // optional
-  email        String? // optional
-  category     String? // 'bug', 'suggestion', 'improvement', etc.
+  name         String?
+  email        String?
+  category     String?
   message      String
-  feedbackFrom String? // NEW: where they’re reporting from
+  feedbackFrom String?
   createdAt    DateTime @default(now())
 }
 
 model SiteSettings {
-  id           Int     @id @default(autoincrement())
-  churchName   String  @default("Church Admin")
-  description  String  @default("")
-  contactEmail String?
-  contactPhone String?
-  address      String?
-  socialLinks  Json? // { facebook, instagram, youtube, twitter }
-
-  // Appearance
-  primaryColor String  @default("#0088FE")
-  logoUrl      String?
-
-  // Features
-  allowRegistration Boolean @default(true)
-
-  // AI Model Selection
-  selectedModel   String? // Manually selected model (null = use automatic)
-  autoSelectModel Boolean @default(true) // Whether to use automatic model selection
-
-  updatedAt DateTime @updatedAt
-  updatedBy String? // User ID who last updated
+  id                Int      @id @default(autoincrement())
+  churchName        String   @default("Church Admin")
+  description       String   @default("")
+  contactEmail      String?
+  contactPhone      String?
+  address           String?
+  socialLinks       Json?
+  primaryColor      String   @default("#0088FE")
+  logoUrl           String?
+  allowRegistration Boolean  @default(true)
+  selectedModel     String?
+  autoSelectModel   Boolean  @default(true)
+  updatedAt         DateTime @updatedAt
+  updatedBy         String?
 }
 
 model AIModelStatus {
-  id            String    @id // Use model name as ID (e.g., "google:gemini-2.5-flash-lite")
-  available     Boolean?  // null = not tested, true = available, false = unavailable
+  id            String    @id
+  available     Boolean?
   hasBeenTested Boolean   @default(false)
   lastChecked   DateTime?
   lastFailure   DateTime?
@@ -222,3 +236,11 @@ model AIModelStatus {
   updatedAt     DateTime  @updatedAt
 }
 
+model AdminActivity {
+  id         String   @id @default(uuid())
+  userId     String
+  section    String
+  lastViewed DateTime @default(now())
+
+  @@unique([userId, section])
+}

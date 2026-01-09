@@ -984,6 +984,76 @@ export const getAllReports = async () => {
   }
 };
 
+// Sidebar notification functions
+export type NotificationCounts = {
+  feedback: number;
+  users: number;
+};
+
+export const getNotificationCounts = async (
+  userId: string
+): Promise<NotificationCounts> => {
+  try {
+    // Get the user's last viewed timestamps for each section
+    const activities = await prisma.adminActivity.findMany({
+      where: { userId },
+    });
+
+    const lastViewedMap = new Map(
+      activities.map((a) => [a.section, a.lastViewed])
+    );
+
+    // Count new items since last viewed for each section
+    const [feedbackCount, usersCount] = await Promise.all([
+      prisma.feedback.count({
+        where: {
+          createdAt: {
+            gt: lastViewedMap.get("feedback") || new Date(0),
+          },
+        },
+      }),
+      prisma.user.count({
+        where: {
+          createdAt: {
+            gt: lastViewedMap.get("users") || new Date(0),
+          },
+        },
+      }),
+    ]);
+
+    return {
+      feedback: feedbackCount,
+      users: usersCount,
+    };
+  } catch (error) {
+    console.error("Error getting notification counts:", error);
+    return { feedback: 0, users: 0 };
+  }
+};
+
+export const markSectionSeen = async (
+  userId: string,
+  section: string
+): Promise<void> => {
+  try {
+    await prisma.adminActivity.upsert({
+      where: {
+        userId_section: { userId, section },
+      },
+      update: {
+        lastViewed: new Date(),
+      },
+      create: {
+        userId,
+        section,
+        lastViewed: new Date(),
+      },
+    });
+  } catch (error) {
+    console.error("Error marking section as seen:", error);
+  }
+};
+
 // Analytics queries
 export const getRecentActivity = async () => {
   const [recentUsers, recentBlogs, recentSermons, recentEvents] =
