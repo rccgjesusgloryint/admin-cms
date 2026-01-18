@@ -16,6 +16,8 @@ import {
   BarChart3,
 } from "lucide-react";
 import { markSectionSeen, NotificationCounts } from "@/lib/queries";
+import { SECTION_PERMISSIONS } from "@/lib/permissions";
+import { Role } from "@prisma/client";
 
 const navigation = [
   {
@@ -58,9 +60,14 @@ const navigation = [
 interface SidebarProps {
   notificationCounts?: NotificationCounts;
   userId?: string;
+  userRole?: Role;
 }
 
-export function Sidebar({ notificationCounts, userId }: SidebarProps) {
+export function Sidebar({
+  notificationCounts,
+  userId,
+  userRole,
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -68,11 +75,21 @@ export function Sidebar({ notificationCounts, userId }: SidebarProps) {
   // Local state to track which sections have been marked as seen this session
   const [seenSections, setSeenSections] = useState<Set<string>>(new Set());
 
+  // Filter navigation based on user permissions
+  const allowedNavigation = navigation.filter((item) => {
+    if (!userRole) return false;
+    const permissions =
+      SECTION_PERMISSIONS[item.href as keyof typeof SECTION_PERMISSIONS];
+    return permissions
+      ? (permissions as readonly Role[]).includes(userRole)
+      : false;
+  });
+
   // Mark section as seen when navigating to it
   useEffect(() => {
     if (!userId) return;
 
-    const currentNav = navigation.find((item) => pathname === item.href);
+    const currentNav = allowedNavigation.find((item) => pathname === item.href);
     if (currentNav?.section && !seenSections.has(currentNav.section)) {
       // Mark as seen locally (immediate UI update)
       setSeenSections((prev) => new Set(prev).add(currentNav.section!));
@@ -85,7 +102,7 @@ export function Sidebar({ notificationCounts, userId }: SidebarProps) {
         });
       });
     }
-  }, [pathname, userId, seenSections, router]);
+  }, [pathname, userId, seenSections, router, allowedNavigation]);
 
   const getNotificationCount = (section: string | null): number => {
     if (!section || !notificationCounts) return 0;
@@ -100,7 +117,7 @@ export function Sidebar({ notificationCounts, userId }: SidebarProps) {
         <h1 className="text-2xl font-bold">Admin Portal</h1>
       </div>
       <nav className="px-3 space-y-1">
-        {navigation.map((item) => {
+        {allowedNavigation.map((item) => {
           const isActive = pathname === item.href;
           const count = getNotificationCount(item.section);
 
@@ -112,7 +129,7 @@ export function Sidebar({ notificationCounts, userId }: SidebarProps) {
                 "flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 isActive
                   ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50",
               )}
             >
               <div className="flex items-center gap-3">

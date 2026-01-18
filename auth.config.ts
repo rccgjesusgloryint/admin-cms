@@ -1,23 +1,23 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
-import Credentials from "next-auth/providers/credentials";
 import { Role } from "@prisma/client";
+
 export const config = {
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
-    // Add other providers as needed
   ],
   pages: {
     signIn: "/login",
   },
   callbacks: {
     async jwt({ token, user, trigger }) {
-      // On sign in, fetch the full user from database
+      // Only fetch from database on initial sign-in (not on every request)
+      // This avoids Prisma calls on Edge Runtime
       if (user?.email) {
-        // Query by email since OAuth provider ID !== database ID
+        // Dynamic import only happens on sign-in (runs in Node.js route)
         const { prisma } = await import("@/lib/db");
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email },
@@ -25,11 +25,23 @@ export const config = {
         });
 
         if (dbUser) {
-          // Use the database user's ID and role
           token.id = dbUser.id;
           token.member = dbUser.member;
         }
       }
+
+      // On manual refresh trigger, refetch role from database
+      if (trigger === "update" && token.id && typeof token.id === "string") {
+        const { prisma } = await import("@/lib/db");
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { member: true },
+        });
+        if (dbUser) {
+          token.member = dbUser.member;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -41,11 +53,12 @@ export const config = {
     },
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
 
-      if (isOnDashboard) {
-        if (isLoggedIn) return true;
-        return false; // Redirect to login
+      const publicRoutes = ["/", "/login"];
+      const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
+
+      if (!isPublicRoute && !isLoggedIn) {
+        return false;
       }
 
       return true;

@@ -40,28 +40,51 @@ interface Props {
 
 const UpdateUserForm = ({ user, setRefresh, setClose }: Props) => {
   const formSchema = z.object({
-    role: z.enum(["ADMIN", "MEMBER", "OWNER", "MINISTER"]),
+    role: z.enum([
+      "MEMBER",
+      "MINISTER",
+      "ADMIN_GENERAL",
+      "ADMIN_MODERATE",
+      "ADMIN_FULL",
+      "OWNER",
+    ]),
   });
 
   type FormData = z.infer<typeof formSchema>;
+
+  // Map old roles to new ones for backwards compatibility
+  const getDefaultRole = (): FormData["role"] => {
+    const role = user.member;
+    if (
+      role === "MEMBER" ||
+      role === "MINISTER" ||
+      role === "ADMIN_GENERAL" ||
+      role === "ADMIN_MODERATE" ||
+      role === "ADMIN_FULL" ||
+      role === "OWNER"
+    ) {
+      return role;
+    }
+    return "MEMBER";
+  };
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
     defaultValues: {
-      role: (user.member as "ADMIN" | "MEMBER" | "OWNER" | "MINISTER") || "MEMBER",
+      role: getDefaultRole(),
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       const response = await toast.promise(
-        updateUsersRole(user.id, values.role),
+        updateUsersRole(user.id, values.role as Role),
         {
           loading: "Updating user role...",
           success: (data) => `Successfully updated user role!`,
           error: (err) => `Error updating role: ${err.toString()}`,
-        }
+        },
       );
 
       if (response.status === 200) {
@@ -77,7 +100,9 @@ const UpdateUserForm = ({ user, setRefresh, setClose }: Props) => {
     <Card className="w-full max-w-md mx-auto mt-5">
       <CardHeader>
         <CardTitle>Update User Role</CardTitle>
-        <CardDescription>Change the role for {user.name || user.email}</CardDescription>
+        <CardDescription>
+          Change the role for {user.name || user.email}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -86,7 +111,7 @@ const UpdateUserForm = ({ user, setRefresh, setClose }: Props) => {
               <FormLabel>User Email</FormLabel>
               <Input value={user.email || ""} disabled />
             </div>
-            
+
             <FormField
               control={form.control}
               name="role"
@@ -104,8 +129,16 @@ const UpdateUserForm = ({ user, setRefresh, setClose }: Props) => {
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="MEMBER">Member</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
                       <SelectItem value="MINISTER">Minister</SelectItem>
+                      <SelectItem value="ADMIN_GENERAL">
+                        Admin: General (Events & Media)
+                      </SelectItem>
+                      <SelectItem value="ADMIN_MODERATE">
+                        Admin: Moderate (+ Sermons & Blogs)
+                      </SelectItem>
+                      <SelectItem value="ADMIN_FULL">
+                        Admin: Full Access
+                      </SelectItem>
                       <SelectItem value="OWNER">Owner</SelectItem>
                     </SelectContent>
                   </Select>

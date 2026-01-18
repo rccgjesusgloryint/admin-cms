@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,21 +8,16 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
- directUrl = env("DIRECT_URL")
+  // directUrl = env("DIRECT_URL")
 }
 
 enum Role {
-  ADMIN  
   MEMBER
   MINISTER
-  OWNER
-}
-
-enum Permissions {
-  readonly_access
-  admin_access
-  member_access
-  minister_access
+  ADMIN_GENERAL      // Events & Media only (youth department)
+  ADMIN_MODERATE     // General + Sermons & Blogs (technical department)
+  ADMIN_FULL         // All sections (super admin)
+  OWNER              // System owner (same as ADMIN_FULL)
 }
 
 model User {

@@ -52,11 +52,16 @@ export const isAdmin = async () => {
     where: { id: session.user?.id },
   });
 
-  if (res?.member === "ADMIN" || res?.member === "OWNER") {
-    return true;
-  } else {
-    return false;
-  }
+  if (!res?.member) return false;
+
+  // Check if user has any admin-level role
+  const adminRoles: Role[] = [
+    "ADMIN_GENERAL",
+    "ADMIN_MODERATE",
+    "ADMIN_FULL",
+    "OWNER",
+  ];
+  return adminRoles.includes(res.member);
 };
 
 export const isUserOwner = async () => {
@@ -136,7 +141,7 @@ export const getAuthUserDetails = async () => {
 // };
 
 export const getRandomImages = async (
-  amount: number
+  amount: number,
 ): Promise<CarosoulImageType[]> => {
   const takeImages = 60; // tune
   const takeEventSets = 3; // tune
@@ -176,8 +181,8 @@ export const getRandomImages = async (
     new Map(
       [...fromImage, ...fromEventMedia]
         .filter((r) => r.url && r.url.trim() !== "")
-        .map((r) => [r.url as string, r]) // key: url
-    ).values()
+        .map((r) => [r.url as string, r]), // key: url
+    ).values(),
   );
 
   const randomized = shuffle(deduped).slice(0, amount) as Raw[];
@@ -400,7 +405,7 @@ export const addEmailToNewsletter = async (newEmail: string) => {
 
 export const getAllNewsletterEmails = async (): Promise<string[]> => {
   const response = (await prisma.newsletterEmail.findMany({})).map(
-    (email) => email.email
+    (email) => email.email,
   );
   return response;
 };
@@ -521,7 +526,7 @@ export const sendContactEmail = async ({
 // };
 
 export const sendBulkNewsletterEmail = async (
-  newsletterEmails: NewsletterEmail
+  newsletterEmails: NewsletterEmail,
 ) => {
   const resend = new Resend(process.env.PROD_RESEND_API_KEY);
 
@@ -587,7 +592,7 @@ export const sendBulkNewsletterEmail = async (
         "User is not autherised, must have 'Owner' credentials to send newsletters",
     });
     throw new Error(
-      "User is not autherised, must have 'Owner' credentials to send newsletters"
+      "User is not autherised, must have 'Owner' credentials to send newsletters",
     );
   }
 
@@ -780,10 +785,7 @@ export const getUserById = async (id: string) => {
   }
 };
 
-export const updateUsersRole = async (
-  userId: string,
-  role: "ADMIN" | "MEMBER" | "OWNER" | "MINISTER"
-) => {
+export const updateUsersRole = async (userId: string, role: Role) => {
   try {
     await prisma.user.update({
       where: { id: userId },
@@ -944,7 +946,7 @@ export const getAllImagesv2 = async () => {
  * }
  */
 export const getEventGalleryById = async (
-  eventId: number
+  eventId: number,
 ): Promise<EventMedia | null> => {
   try {
     const response = await prisma.eventMedia.findUnique({
@@ -991,7 +993,7 @@ export type NotificationCounts = {
 };
 
 export const getNotificationCounts = async (
-  userId: string
+  userId: string,
 ): Promise<NotificationCounts> => {
   try {
     // Get the user's last viewed timestamps for each section
@@ -1000,7 +1002,7 @@ export const getNotificationCounts = async (
     });
 
     const lastViewedMap = new Map(
-      activities.map((a) => [a.section, a.lastViewed])
+      activities.map((a) => [a.section, a.lastViewed]),
     );
 
     // Count new items since last viewed for each section
@@ -1033,7 +1035,7 @@ export const getNotificationCounts = async (
 
 export const markSectionSeen = async (
   userId: string,
-  section: string
+  section: string,
 ): Promise<void> => {
   try {
     await prisma.adminActivity.upsert({
@@ -1188,7 +1190,7 @@ export const getSiteSettings = async (retries = 3): Promise<any> => {
     // Handle Prisma Accelerate cold start connection issues
     if (error?.code === "P2021" && retries > 0) {
       console.log(
-        `⏳ Database connection initializing, retrying... (${retries} attempts left)`
+        `⏳ Database connection initializing, retrying... (${retries} attempts left)`,
       );
       await new Promise((resolve) => setTimeout(resolve, 500));
       return getSiteSettings(retries - 1);
@@ -1235,7 +1237,7 @@ export const updateNotification = async (
     notification?: string;
     shouldNotify?: boolean;
     notificationDuration?: string;
-  }
+  },
 ) => {
   return await prisma.notification.update({
     where: { id },
@@ -1256,7 +1258,7 @@ const TRANSCRIPT_API_URL = process.env.TRANSCRIPT_API_URL;
 
 export async function getSermonTranscript(
   videoUrl: string,
-  options: GetTranscriptOptions
+  options: GetTranscriptOptions,
 ): Promise<TranscriptResponse | null> {
   const {
     format = "text",
@@ -1278,7 +1280,7 @@ export async function getSermonTranscript(
         headers: {
           Authorization: `Bearer ${TRANSCRIPT_API_KEY}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -1304,7 +1306,7 @@ function removeTimestamps(text: string): string {
 
 export async function generateAiSummary(
   transcript: string,
-  sermonId: number
+  sermonId: number,
 ): Promise<string> {
   try {
     if (!transcript || transcript.trim() === "") {
@@ -1341,7 +1343,7 @@ Transcript: ${cleanTranscript}
 
     if (!aiSummary) {
       throw new Error(
-        "AI Summary generation failure: No content returned from API"
+        "AI Summary generation failure: No content returned from API",
       );
     }
 
@@ -1366,7 +1368,7 @@ Transcript: ${cleanTranscript}
 export const generateAISermonBreakdown = async (
   sermonId: number,
   transcript: string,
-  videoId: string
+  videoId: string,
 ): Promise<string> => {
   try {
     if (!transcript || transcript.trim() === "") {
@@ -1442,7 +1444,7 @@ Video ID: ${videoId}
           role: "user",
           content: modelPrompt,
         },
-      ]
+      ],
     );
 
     console.log(`🤖 AI Breakdown generated using model: ${modelUsed}`);
@@ -1451,7 +1453,7 @@ Video ID: ${videoId}
 
     if (!aiBreakdown) {
       throw new Error(
-        "AI Breakdown generation failure: No content returned from API"
+        "AI Breakdown generation failure: No content returned from API",
       );
     }
 
