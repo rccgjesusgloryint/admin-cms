@@ -1,5 +1,6 @@
 import { getSiteSettings } from "@/lib/queries";
 import { SettingsForm } from "@/components/settings/SettingsForm";
+import { EmailNotificationSettings } from "@/components/settings/EmailNotificationSettings";
 import { auth } from "@/auth";
 
 export default async function SettingsPage() {
@@ -20,6 +21,11 @@ export default async function SettingsPage() {
         settings={settings}
         userId={session?.user?.id}
         mediaToolUrl={mediaToolUrl}
+      />
+
+      <EmailNotificationSettings
+        userId={session?.user?.id}
+        userRole={session?.user?.member}
       />
     </div>
   );

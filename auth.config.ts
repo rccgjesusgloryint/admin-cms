@@ -12,6 +12,16 @@ export const config = {
   pages: {
     signIn: "/login",
   },
+  events: {
+    async createUser({ user }) {
+      // Notify ADMIN_FULL users when a new user registers
+      const { notifyAdmins } = await import("@/lib/email-notifications");
+      notifyAdmins("new_user", {
+        name: user.name ?? undefined,
+        email: user.email ?? undefined,
+      });
+    },
+  },
   callbacks: {
     async jwt({ token, user, trigger }) {
       // Only fetch from database on initial sign-in (not on every request)

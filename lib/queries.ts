@@ -26,6 +26,7 @@ import { shuffle } from "./actions";
 import { syncYouTubeDb } from "./syncYouTubeDb";
 
 import { callAIWithFallback } from "./ai-config";
+import { notifyAdmins } from "./email-notifications";
 
 export const allUsers = async () => {
   const res = await prisma.user.findMany({});
@@ -208,6 +209,10 @@ export const createEvent = async (eventObj: CreateEventType) => {
     });
 
     console.log("SUCCESS CREATING EVENT 🟢🟢");
+
+    // Notify ADMIN_FULL users about new event
+    notifyAdmins("new_event", { title: eventObj.event });
+
     return { message: "SUCCESS CREATING EVENT 🟢🟢", status: 200 };
   } catch (error) {
     console.log(`OOPS, PROBLEM CREATING EVENT 🔴🔴 -- ERROR MESSAGE: ${error}`);
@@ -642,6 +647,10 @@ export const createSermon = async (sermon: CreateSermon, tags?: string[]) => {
       },
     });
     console.log("SUCCESS CREATING SERMON 🟢🟢");
+
+    // Notify ADMIN_FULL users about new sermon
+    notifyAdmins("new_sermon", { title: sermon.sermonTitle });
+
     return { message: "🟢🟢SUCCESS", status: 200 };
   } catch (error) {
     console.log("🔴🔴 OOPS COULDNT CREATE SERMON -- ", error);
@@ -726,6 +735,13 @@ export const postBlog = async (blog: BlogType, userId: string | undefined) => {
       },
     });
     console.log("BLOG POSTED 🟢🟢");
+
+    // Notify ADMIN_FULL users about new blog
+    notifyAdmins("new_blog", {
+      title: blog.blogTitle,
+      category: blog.category,
+    });
+
     return { message: "🟢🟢SUCCESS", status: 200 };
   } catch (error) {
     console.log("🔴🔴 OOPS COULDNT POST BLOG -- ", error);
@@ -758,10 +774,17 @@ export const updateBlog = async (blog: BlogType, blogId: string) => {
       where: { id: blogId },
       data: blog,
     });
-    return { status: 200, message: "Success updating sermon!" };
+
+    // Notify ADMIN_FULL users about edited blog
+    notifyAdmins("edited_blog", {
+      title: blog.blogTitle,
+      category: blog.category,
+    });
+
+    return { status: 200, message: "Success updating blog!" };
   } catch (error) {
     console.log(error);
-    return { status: 400, message: "Error updating sermon!" };
+    return { status: 400, message: "Error updating blog!" };
   }
 };
 
@@ -806,6 +829,10 @@ export const updateSermon = async (sermonId: number, sermon: Sermon) => {
       where: { id: sermonId },
       data: sermon,
     });
+
+    // Notify ADMIN_FULL users about edited sermon
+    notifyAdmins("edited_sermon", { title: sermon.sermonTitle });
+
     return { status: 200, message: "Success updating sermon!" };
   } catch (error) {
     console.log(error);
@@ -819,6 +846,10 @@ export const updateEvent = async (eventId: number, event: EventsType) => {
       where: { id: eventId },
       data: event,
     });
+
+    // Notify ADMIN_FULL users about edited event
+    notifyAdmins("edited_event", { title: event.event });
+
     return { status: 200, message: "Success updating event!" };
   } catch (error) {
     console.log(error);
@@ -961,7 +992,7 @@ export const getEventGalleryById = async (
 
 export const reportFeedback = async (form: FeedbackNoId) => {
   try {
-    return await prisma.feedback.create({
+    const feedback = await prisma.feedback.create({
       data: {
         name: form.name ?? null,
         email: form.email ?? null,
@@ -970,6 +1001,16 @@ export const reportFeedback = async (form: FeedbackNoId) => {
         feedbackFrom: form.feedbackFrom ?? null,
       },
     });
+
+    // Notify ADMIN_FULL users about new feedback
+    notifyAdmins("new_feedback", {
+      name: form.name ?? undefined,
+      email: form.email ?? undefined,
+      category: form.category ?? undefined,
+      message: form.message,
+    });
+
+    return feedback;
   } catch (err) {
     console.error("Error: ", err);
     throw err;
@@ -1472,5 +1513,76 @@ Video ID: ${videoId}
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
     throw new Error(`Failed to generate AI breakdown: ${errorMessage}`);
+  }
+};
+
+// Email Notification Preferences Types and Functions
+export interface EmailNotificationPreferencesData {
+  notifyNewUsers: boolean;
+  notifyNewBlogs: boolean;
+  notifyNewSermons: boolean;
+  notifyNewEvents: boolean;
+  notifyNewFeedback: boolean;
+  notifyEditedBlogs: boolean;
+  notifyEditedSermons: boolean;
+  notifyEditedEvents: boolean;
+}
+
+export const getEmailNotificationPreferences = async (
+  userId: string,
+): Promise<EmailNotificationPreferencesData | null> => {
+  try {
+    const prefs = await prisma.emailNotificationPreference.findUnique({
+      where: { userId },
+    });
+
+    if (!prefs) {
+      // Return defaults if no preferences exist
+      return {
+        notifyNewUsers: true,
+        notifyNewBlogs: true,
+        notifyNewSermons: true,
+        notifyNewEvents: true,
+        notifyNewFeedback: true,
+        notifyEditedBlogs: true,
+        notifyEditedSermons: true,
+        notifyEditedEvents: true,
+      };
+    }
+
+    return {
+      notifyNewUsers: prefs.notifyNewUsers,
+      notifyNewBlogs: prefs.notifyNewBlogs,
+      notifyNewSermons: prefs.notifyNewSermons,
+      notifyNewEvents: prefs.notifyNewEvents,
+      notifyNewFeedback: prefs.notifyNewFeedback,
+      notifyEditedBlogs: prefs.notifyEditedBlogs,
+      notifyEditedSermons: prefs.notifyEditedSermons,
+      notifyEditedEvents: prefs.notifyEditedEvents,
+    };
+  } catch (error) {
+    console.error("Error getting email notification preferences:", error);
+    return null;
+  }
+};
+
+export const updateEmailNotificationPreferences = async (
+  userId: string,
+  preferences: EmailNotificationPreferencesData,
+): Promise<{ success: boolean }> => {
+  try {
+    await prisma.emailNotificationPreference.upsert({
+      where: { userId },
+      update: preferences,
+      create: {
+        userId,
+        ...preferences,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating email notification preferences:", error);
+    return { success: false };
   }
 };
