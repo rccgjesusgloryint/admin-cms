@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -40,7 +42,7 @@ const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
     date: z.tuple([z.string().min(1), z.string()]),
     location: z.string().min(15),
     description: z.object({
-      eventPosterImage: z.string().min(1).optional(),
+      eventPosterImage: z.string().optional(),
       eventDescription: z.string().min(1),
     }),
   });
@@ -65,6 +67,28 @@ const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
       },
     },
   });
+
+  const onInvalidSubmit = (errors: typeof form.formState.errors) => {
+    if (errors.event) {
+      return toast.error("Event: " + errors.event.message!);
+    }
+    if (errors.date) {
+      return toast.error("Date: Please provide a valid date range");
+    }
+    if (errors.location) {
+      return toast.error("Location: " + errors.location.message!);
+    }
+    if (errors.description?.eventDescription) {
+      return toast.error(
+        "Description: " + errors.description.eventDescription.message!
+      );
+    }
+    if (errors.description?.eventPosterImage) {
+      return toast.error(
+        "Poster image: " + errors.description.eventPosterImage.message!
+      );
+    }
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!oldEvent.id) return alert("No event Id provided!");
@@ -111,7 +135,7 @@ const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-5 w-full">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="w-full">
             <FormField
               control={form.control}
               name="event"
