@@ -27,7 +27,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import React, { Dispatch, SetStateAction, useState } from "react";
@@ -41,6 +41,8 @@ import { EventsType } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
 
 import { Input } from "@/components/ui/input";
+import FileUpload from "@/components/media/file-upload";
+import Image from "next/image";
 
 function formatDate(date: Date | undefined) {
   if (!date) return "";
@@ -70,6 +72,11 @@ const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>(initialDateRange);
   const [open, setOpen] = useState(false);
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [existingImageUrl, setExistingImageUrl] = useState(
+    oldEvent.description?.eventPosterImage || ""
+  );
 
   // Define the schema
   const formSchema = z
@@ -140,16 +147,50 @@ const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!oldEvent.id) return alert("No event Id provided!");
     try {
+      setIsUploading(true);
+      let imageUrl = existingImageUrl;
+
+      // Upload new image to R2 if one was selected
+      if (coverImage) {
+        const presignRes = await fetch("/api/upload/r2/presign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            files: [{ name: coverImage.name, type: coverImage.type }],
+            prefix: `events/${oldEvent.id}`,
+          }),
+        });
+        const presignData = await presignRes.json();
+        if (!presignData.uploads?.[0]?.uploadUrl) {
+          throw new Error("Failed to get presigned URL for image upload.");
+        }
+        const { uploadUrl, publicUrl, contentType } = presignData.uploads[0];
+
+        const putRes = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": contentType },
+          body: coverImage,
+        });
+        if (!putRes.ok) {
+          throw new Error(`Image upload failed: ${coverImage.name}`);
+        }
+        imageUrl = publicUrl;
+      }
+
       const eventData = {
         ...values,
         date: monthlyValue
           ? ["", ""]
           : [formatDate(dateRange?.from), formatDate(dateRange?.to)],
+        description: {
+          eventPosterImage: imageUrl,
+          eventDescription: values.description.eventDescription,
+        },
       };
       const response = await toast.promise(
         updateEvent(oldEvent.id, eventData as EventsType),
         {
-          loading: "Loading",
+          loading: "Updating event...",
           success: (data) => `Successfully updated Event! ${data.message}`,
           error: (err) => `This just happened: ${err.toString()}`,
         },
@@ -171,11 +212,14 @@ const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
         }
       );
       if (response.status === 200) {
-        setRefresh((prev) => !prev); // 🔄 Toggle state to trigger rerender
+        setRefresh((prev) => !prev);
         setClose();
       }
     } catch (error) {
-      console.log("ERROR Updating User");
+      console.log("ERROR Updating Event", error);
+      toast.error("Failed to update event. Please try again.");
+    } finally {
+      setIsUploading(false);
     }
   }
 
@@ -294,6 +338,45 @@ const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
             /> */}
             <FormField
               control={form.control}
+              name="description.eventPosterImage"
+              render={() => (
+                <FormItem>
+                  <FormControl>
+                    <div className="space-y-3">
+                      {existingImageUrl && !coverImage && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">Current image:</p>
+                          <div className="relative w-full max-w-xs aspect-square group">
+                            <Image
+                              src={existingImageUrl}
+                              alt="Current event poster"
+                              fill
+                              className="object-cover rounded-lg border border-border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setExistingImageUrl("")}
+                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-lg hover:scale-110 transition-transform"
+                              aria-label="Remove current image"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <FileUpload
+                        value={coverImage}
+                        onChange={setCoverImage}
+                        label={existingImageUrl ? "Replace Image" : "Event Poster Image"}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="description.eventDescription"
               render={({ field }) => (
                 <FormItem>
@@ -305,7 +388,9 @@ const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
                 </FormItem>
               )}
             />
-            <Button type="submit">Update Event</Button>
+            <Button type="submit" disabled={isUploading}>
+              {isUploading ? "Uploading..." : "Update Event"}
+            </Button>
           </form>
         </Form>
       </CardContent>
