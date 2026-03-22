@@ -29,7 +29,7 @@ const Cards = ({ events, lastSundayFull, lastSunday }: CardProps) => {
           }`}
           key={index}
         >
-          {event.date[0] ? (
+          {event.date[0] && !event.monthly ? (
             <div className="absolute bg-primary flex flex-wrap justify-center items-center content-center top-[-45px] rounded-[50%] w-[90px] h-[90px] pt-[8px] text-primary-foreground drop-shadow-custom">
               <p className="text-[28px] text-center w-full mb-[3px] leading-6">
                 {event.date[0]?.split(" ")[1]?.length > 2
@@ -41,6 +41,10 @@ const Cards = ({ events, lastSundayFull, lastSunday }: CardProps) => {
                   ? event.date[0]?.slice(0, 3)
                   : event.date[0]}
               </p>
+            </div>
+          ) : event.monthly ? (
+            <div className="absolute bg-primary flex flex-wrap justify-center items-center content-center top-[-45px] rounded-[50%] w-[90px] h-[90px] pt-[8px] text-primary-foreground drop-shadow-custom">
+              <MdEventRepeat className="text-[28px]" />
             </div>
           ) : (
             <div className="absolute bg-primary flex flex-wrap justify-center items-center content-center top-[-45px] rounded-[50%] w-[90px] h-[90px] pt-[8px] text-primary-foreground drop-shadow-custom">
@@ -64,7 +68,9 @@ const Cards = ({ events, lastSundayFull, lastSunday }: CardProps) => {
               <span className=""></span>
             </div>
             <div className="font-bold text-base pl-10">
-              {event.date[0] ? (
+              {event.monthly ? (
+                <p>Monthly</p>
+              ) : event.date[0] ? (
                 <span>
                   <div>
                     <p>{event.date[0]}</p>

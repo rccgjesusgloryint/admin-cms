@@ -67,7 +67,7 @@ export function EventsList() {
               Location: {event.location}
             </p>
             <p className="text-sm text-muted-foreground">
-              Date: {event.date?.[0]} - {event.date?.[1]}
+              Date: {event.monthly || (!event.date?.[0] && !event.date?.[1]) ? "Monthly" : `${event.date?.[0]} - ${event.date?.[1]}`}
             </p>
           </CardContent>
         </Card>

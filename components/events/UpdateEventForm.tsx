@@ -17,9 +17,22 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
+
 import { zodResolver } from "@hookform/resolvers/zod";
-import React, { Dispatch, SetStateAction } from "react";
+import React, { Dispatch, SetStateAction, useState } from "react";
 import { useForm } from "react-hook-form";
+import { DateRange } from "react-day-picker";
 import { z } from "zod";
 
 import toast from "react-hot-toast";
@@ -29,6 +42,15 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { Input } from "@/components/ui/input";
 
+function formatDate(date: Date | undefined) {
+  if (!date) return "";
+  return date.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 interface Props {
   oldEvent: EventsType;
   setRefresh: Dispatch<SetStateAction<boolean>>;
@@ -36,16 +58,38 @@ interface Props {
 }
 
 const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
+  // Parse existing date strings into Date objects for the calendar
+  const initialDateRange: DateRange | undefined = (() => {
+    const from = oldEvent.date?.[0] ? new Date(oldEvent.date[0]) : undefined;
+    const to = oldEvent.date?.[1] ? new Date(oldEvent.date[1]) : undefined;
+    if (from && !isNaN(from.getTime())) {
+      return { from, to: to && !isNaN(to.getTime()) ? to : undefined };
+    }
+    return undefined;
+  })();
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(initialDateRange);
+  const [open, setOpen] = useState(false);
+
   // Define the schema
-  const formSchema = z.object({
-    event: z.string().min(2).max(50),
-    date: z.tuple([z.string().min(1), z.string()]),
-    location: z.string().min(15),
-    description: z.object({
-      eventPosterImage: z.string().optional(),
-      eventDescription: z.string().min(1),
-    }),
-  });
+  const formSchema = z
+    .object({
+      event: z.string().min(2).max(50),
+      date: z.tuple([z.string(), z.string()]).optional(),
+      location: z.string().min(15),
+      description: z.object({
+        eventPosterImage: z.string().optional(),
+        eventDescription: z.string().min(1),
+      }),
+      monthly: z.boolean(),
+    })
+    .refine(
+      (data) => data.monthly || (dateRange && dateRange.from && dateRange.to),
+      {
+        path: ["date"],
+        message: "From and To dates are required when the event is not monthly.",
+      }
+    );
 
   // Infer the form data type
   type FormData = z.infer<typeof formSchema>;
@@ -65,8 +109,11 @@ const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
         eventPosterImage: oldEvent.description.eventPosterImage || "",
         eventDescription: oldEvent.description.eventDescription || "",
       },
+      monthly: oldEvent.monthly ?? false,
     },
   });
+
+  const monthlyValue = form.watch("monthly");
 
   const onInvalidSubmit = (errors: typeof form.formState.errors) => {
     if (errors.event) {
@@ -93,8 +140,14 @@ const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!oldEvent.id) return alert("No event Id provided!");
     try {
+      const eventData = {
+        ...values,
+        date: monthlyValue
+          ? ["", ""]
+          : [formatDate(dateRange?.from), formatDate(dateRange?.to)],
+      };
       const response = await toast.promise(
-        updateEvent(oldEvent.id, values as EventsType),
+        updateEvent(oldEvent.id, eventData as EventsType),
         {
           loading: "Loading",
           success: (data) => `Successfully updated Event! ${data.message}`,
@@ -151,30 +204,64 @@ const UpdateEventForm = ({ oldEvent, setRefresh, setClose }: Props) => {
             />
             <FormField
               control={form.control}
-              name="date.0"
+              name="monthly"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>From Date</FormLabel>
+                  <FormLabel>Is this a Monthly event?</FormLabel>
                   <FormControl>
-                    <Input placeholder="From (eg. April 28, 2022)" {...field} />
+                    <Select
+                      onValueChange={(val) => field.onChange(val === "true")}
+                      value={String(field.value)}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="No" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Yes</SelectItem>
+                        <SelectItem value="false">No</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="date.1"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>To Date</FormLabel>
-                  <FormControl>
-                    <Input placeholder="To (eg. April 30, 2022)" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
+            {/* Conditionally render date picker if not monthly */}
+            {!monthlyValue && (
+              <div className="flex flex-col gap-2">
+                <FormLabel>Event Date Range</FormLabel>
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-fit justify-start text-left font-normal",
+                        !dateRange && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange ? (
+                        <>
+                          {formatDate(dateRange.from)} -{" "}
+                          {dateRange.to && formatDate(dateRange.to)}
+                        </>
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="range"
+                      onSelect={setDateRange}
+                      selected={dateRange}
+                      className="rounded-lg border shadow-sm w-[300px]"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
             <FormField
               control={form.control}
               name="location"
