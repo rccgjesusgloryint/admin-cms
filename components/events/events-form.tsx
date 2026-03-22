@@ -129,38 +129,39 @@ const EventsForm = () => {
     if (!coverImage) return alert("Please select a cover image");
     if (!dateRange) return alert("Please select a date range");
     setIsUploading(true);
-    // 1) Ask server for *one* presigned URL
-    // const presignRes = await fetch("/api/upload/file-presign", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({
-    //     name: coverImage.name,
-    //     type: coverImage.type,
-    //     prefix: `posts/${coverImage.name}`,
-    //   }),
-    // });
-    // const { key, uploadUrl, publicUrl, contentType } = await presignRes.json();
-
-    // if (!uploadUrl) throw new Error("Failed to get presigned URL.");
-
-    // // 2) Upload the file directly to R2
-    // const put = await fetch(uploadUrl, {
-    //   method: "PUT",
-    //   headers: { "Content-Type": contentType },
-    //   body: coverImage,
-    // });
-
-    // if (!put.ok) throw new Error(`Upload failed: ${coverImage.name}`);
-
-    // // 3) Commit metadata (including the *one* URL) to your DB
-    // const imageUrl = publicUrl;
 
     try {
+      // 1) Ask server for a presigned URL
+      const presignRes = await fetch("/api/upload/r2/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          files: [{ name: coverImage.name, type: coverImage.type }],
+          prefix: `events/posters`,
+        }),
+      });
+      const presignData = await presignRes.json();
+      if (!presignData.uploads?.[0]?.uploadUrl) {
+        throw new Error("Failed to get presigned URL for image upload.");
+      }
+      const { uploadUrl, publicUrl, contentType } = presignData.uploads[0];
+
+      // 2) Upload the file directly to R2
+      const put = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": contentType },
+        body: coverImage,
+      });
+      if (!put.ok) throw new Error(`Upload failed: ${coverImage.name}`);
+
+      // 3) Use the public URL for the event poster image
+      const imageUrl = publicUrl;
+
       const response = await toast.promise(
         createEvent({
           ...values,
           description: {
-            eventPosterImage: "",
+            eventPosterImage: imageUrl,
             eventDescription: values.description.eventDescription!,
           },
           date: [formatDate(dateRange.from), formatDate(dateRange.to)],
@@ -191,8 +192,10 @@ const EventsForm = () => {
         form.reset();
       }
     } catch (error) {
-      console.log("SOMETHING WENT WRONG! COULDNT CREATE EVENT");
-      toast.error("Please fix the form errors before submitting.");
+      console.log("SOMETHING WENT WRONG! COULDNT CREATE EVENT", error);
+      toast.error("Failed to create event. Please try again.");
+    } finally {
+      setIsUploading(false);
     }
 
     // Reset form on success
@@ -366,7 +369,9 @@ const EventsForm = () => {
               )}
             />
             <div>
-              <Button type="submit">Create Event</Button>
+              <Button type="submit" disabled={isUploading}>
+                {isUploading ? "Uploading..." : "Create Event"}
+              </Button>
             </div>
           </form>
         </Form>

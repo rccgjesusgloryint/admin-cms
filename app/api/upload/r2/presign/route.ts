@@ -35,8 +35,11 @@ export async function POST(req: NextRequest) {
           Bucket: bucket,
           Key: key,
           ContentType: f.type || "application/octet-stream",
-          CacheControl: "public, max-age=31536000, immutable",
         });
+        // Note: CacheControl was removed from the command because it becomes a
+        // signed header in the presigned URL. Clients that don't send the exact
+        // Cache-Control value get a 403 SignatureDoesNotMatch error from R2.
+        // Set cache rules via Cloudflare R2 bucket settings or Transform Rules instead.
         const uploadUrl = await getSignedUrl(S3, cmd, { expiresIn: 60 * 5 });
         const publicUrl = `${process.env.CLOUDFARE_IMAGE_URL}/${key}`;
         return {
