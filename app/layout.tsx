@@ -5,7 +5,10 @@ import { Toaster } from "react-hot-toast";
 import { ThemeProvider } from "@/components/theme-provider";
 const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
-  title: "Admin Portal - Jesus Glory Athy",
+  title: {
+    default: "Admin Portal - Jesus Glory Athy",
+    template: "%s | Jesus Glory Athy",
+  },
   description: "Content management system for Jesus Glory Athy",
 };
 export default function RootLayout({
