@@ -11,6 +11,12 @@ const S3 = new S3Client({
     accessKeyId: process.env.CLOUDFARE_ACCESS_KEY!,
     secretAccessKey: process.env.CLOUDFARE_SECRET_KEY!,
   },
+  // Disable automatic checksum calculation for presigned URLs.
+  // SDK v3.598+ defaults to "WHEN_SUPPORTED" which bakes a CRC32 checksum
+  // (of an empty body) into presigned URLs. When the client uploads the actual
+  // file, R2 sees a checksum mismatch and may store a zero-byte object.
+  requestChecksumCalculation: "WHEN_REQUIRED",
+  responseChecksumValidation: "WHEN_REQUIRED",
 });
 
 const bucket = process.env.R2_BUCKET!;
