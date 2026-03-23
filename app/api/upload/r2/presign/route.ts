@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const nowPrefix = prefix ?? new Date().toISOString().slice(0, 10);
     const results = await Promise.all(
       files.map(async (f) => {
-        const key = `${nowPrefix}/${randomUUID()}-${encodeURIComponent(f.name)}`;
+        const key = `${nowPrefix}/${randomUUID()}-${f.name}`;
         const cmd = new PutObjectCommand({
           Bucket: bucket,
           Key: key,
@@ -47,7 +47,8 @@ export async function POST(req: NextRequest) {
         // Cache-Control value get a 403 SignatureDoesNotMatch error from R2.
         // Set cache rules via Cloudflare R2 bucket settings or Transform Rules instead.
         const uploadUrl = await getSignedUrl(S3, cmd, { expiresIn: 60 * 5 });
-        const publicUrl = `${process.env.CLOUDFARE_IMAGE_URL}/${key}`;
+        // Encode each path segment for the public URL (preserves '/' separators)
+        const publicUrl = `${process.env.CLOUDFARE_IMAGE_URL}/${key.split("/").map(encodeURIComponent).join("/")}`;
         return {
           key,
           uploadUrl,
